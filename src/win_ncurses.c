@@ -1,5 +1,6 @@
 // term_win_vt100.c
 #define _CRT_SECURE_NO_WARNINGS
+#include "ncurses.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
