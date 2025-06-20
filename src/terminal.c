@@ -47,7 +47,9 @@ __RCSID("$NetBSD: terminal.c,v 1.46 2023/02/04 14:34:28 christos Exp $");
  *	       termcap putchar routine does not take an argument!
  */
 #include <sys/types.h>
+#ifdef HAVE_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>

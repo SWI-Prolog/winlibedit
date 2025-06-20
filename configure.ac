@@ -49,7 +49,7 @@ AC_CHECK_LIB(ncurses, tgetent,,
   [AC_CHECK_LIB(curses, tgetent,,
     [AC_CHECK_LIB(termcap, tgetent,,
       [AC_CHECK_LIB(tinfo, tgetent,,
-        [AC_MSG_ERROR([libncurses, libcurses, libtermcap or libtinfo is required!])]
+dnl       [AC_MSG_ERROR([libncurses, libcurses, libtermcap or libtinfo is required!])]
       )]
     )]
   )]

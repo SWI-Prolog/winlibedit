@@ -288,6 +288,7 @@ read_char(EditLine *el, wchar_t *cp)
 	el->el_signal->sig_no = 0;
 	while ((num_read = read(el->el_infd, cbuf + cbp, (size_t)1)) == -1) {
 		int e = errno;
+#ifndef __MINGW64__
 		switch (el->el_signal->sig_no) {
 		case SIGCONT:
 			el_wset(el, EL_REFRESH);
@@ -298,6 +299,7 @@ read_char(EditLine *el, wchar_t *cp)
 		default:
 			break;
 		}
+#endif
 		if (!tried && read__fixio(el->el_infd, e) == 0) {
 			errno = save_errno;
 			tried = 1;

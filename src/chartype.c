@@ -253,7 +253,12 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 	return conv->wbuff;
 }
 
-
+#if __MINGW64__
+static inline int
+wcwidth(wchar_t c)
+{ return 1;
+}
+#endif
 
 libedit_private int
 ct_visual_width(wchar_t c)

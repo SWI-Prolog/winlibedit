@@ -42,6 +42,22 @@
 
 #include <signal.h>
 
+#ifndef SIGTSTP
+#define SIGTSTP 1
+#endif
+#ifndef SIGQUIT
+#define SIGQUIT 2
+#endif
+#ifndef SIGHUP
+#define SIGHUP 3
+#endif
+#ifndef SIGCONT
+#define SIGCONT 4
+#endif
+#ifndef SIGWINCH
+#define SIGWINCH 5
+#endif
+
 /*
  * Define here all the signals we are going to handle
  * The _DO macro is used to iterate in the source code
@@ -55,6 +71,51 @@
 	_DO(SIGCONT)	\
 	_DO(SIGWINCH)
 #define ALLSIGSNO	7
+
+#if __MINGW64__
+typedef int sigset_t;
+struct sigaction {
+  void     (*sa_handler)(int);
+  void     (*sa_sigaction)(int, void *, void *);
+  sigset_t   sa_mask;
+  int        sa_flags;
+  void     (*sa_restorer)(void);
+};
+
+static inline int
+sigemptyset(sigset_t *set)
+{ *set = 0;
+  return 0;
+}
+
+static inline int
+sigaddset(sigset_t *set, int signo)
+{ *set |= 1<<(signo-1);
+  return 0;
+}
+
+#define SIG_BLOCK   0
+#define SIG_SETMASK 2
+
+static int
+sigprocmask(int how, sigset_t *nset, sigset_t *oset)
+{ return 0;
+}
+
+#define SA_ONSTACK 0
+
+static int
+sigaction(int signo, struct sigaction *act,
+                     struct sigaction *oldact)
+{ return 0;
+}
+
+static int
+kill(pid_t pid, int sig)
+{ return 0;
+}
+
+#endif
 
 typedef struct {
 	struct sigaction sig_action[ALLSIGSNO];

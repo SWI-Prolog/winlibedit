@@ -63,7 +63,11 @@
 #endif
 
 /* If your compiler does not support this, define it to be empty. */
+#if __MINGW64__
+#define libedit_private
+#else
 #define libedit_private __attribute__((__visibility__("hidden")))
+#endif
 
 #ifndef __arraycount
 # define __arraycount(a) (sizeof(a) / sizeof(*(a)))

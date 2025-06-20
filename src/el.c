@@ -51,7 +51,9 @@ __RCSID("$NetBSD: el.c,v 1.102 2025/01/03 00:40:08 rillig Exp $");
 #include <sys/types.h>
 #include <sys/param.h>
 #include <ctype.h>
+#ifdef HAVE_LANGINFO_H
 #include <langinfo.h>
+#endif
 #include <locale.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -633,15 +635,19 @@ el_resize(EditLine *el)
 	int lins, cols;
 	sigset_t oset, nset;
 
+#if !__MINGW64__
 	(void) sigemptyset(&nset);
 	(void) sigaddset(&nset, SIGWINCH);
 	(void) sigprocmask(SIG_BLOCK, &nset, &oset);
+#endif
 
 	/* get the correct window size */
 	if (terminal_get_size(el, &lins, &cols))
 		terminal_change_size(el, lins, cols);
 
+#if !__MINGW64__
 	(void) sigprocmask(SIG_SETMASK, &oset, NULL);
+#endif
 }
 
 

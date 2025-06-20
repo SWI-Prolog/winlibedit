@@ -186,6 +186,13 @@ re_putliteral(EditLine *el, const wchar_t *begin, const wchar_t *end)
 	}
 }
 
+#if __MINGW64__
+static inline int
+wcwidth(wchar_t c)
+{ return 1;
+}
+#endif
+
 /* re_putc():
  *	Draw the character given
  */
@@ -816,8 +823,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		if (nsb != ne) {
 			ELRE_DEBUG(1, (__F, "with stuff to keep at end\r\n"));
 			/*
-		         * insert fx chars of new starting at nfd
-		         */
+			 * insert fx chars of new starting at nfd
+			 */
 			if (fx > 0) {
 				ELRE_DEBUG(!EL_CAN_INSERT, (__F,
 				"ERROR: cannot insert in early first diff\n"));
@@ -826,8 +833,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				    el->el_terminal.t_size.h, nfd, fx);
 			}
 			/*
-		         * write (nsb-nfd) - fx chars of new starting at
-		         * (nfd + fx)
+			 * write (nsb-nfd) - fx chars of new starting at
+			 * (nfd + fx)
 			 */
 			len = (size_t) ((nsb - nfd) - fx);
 			terminal_overwrite(el, (nfd + fx), len);
@@ -838,8 +845,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			terminal_overwrite(el, nfd, len);
 			re__strncopy(ofd, nfd, len);
 			/*
-		         * Done
-		         */
+			 * Done
+			 */
 			return;
 		}
 	} else if (fx < 0) {
@@ -855,9 +862,9 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		if (osb != oe) {
 			ELRE_DEBUG(1, (__F, "with stuff to save at end\r\n"));
 			/*
-		         * fx is less than zero *always* here but we check
-		         * for code symmetry
-		         */
+			 * fx is less than zero *always* here but we check
+			 * for code symmetry
+			 */
 			if (fx < 0) {
 				ELRE_DEBUG(!EL_CAN_DELETE, (__F,
 				    "ERROR: cannot delete in first diff\n"));
@@ -866,8 +873,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				    el->el_terminal.t_size.h, -fx);
 			}
 			/*
-		         * write (nsb-nfd) chars of new starting at nfd
-		         */
+			 * write (nsb-nfd) chars of new starting at nfd
+			 */
 			len = (size_t) (nsb - nfd);
 			terminal_overwrite(el, nfd, len);
 			re__strncopy(ofd, nfd, len);
@@ -876,14 +883,14 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			ELRE_DEBUG(1, (__F,
 			    "but with nothing left to save\r\n"));
 			/*
-		         * write (nsb-nfd) chars of new starting at nfd
-		         */
+			 * write (nsb-nfd) chars of new starting at nfd
+			 */
 			terminal_overwrite(el, nfd, (size_t)(nsb - nfd));
 			re_clear_eol(el, fx, sx,
 			    (int)((oe - old) - (ne - new)));
 			/*
-		         * Done
-		         */
+			 * Done
+			 */
 			return;
 		}
 	} else
@@ -906,16 +913,16 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		if (ols != oe) {
 			ELRE_DEBUG(1, (__F, "with stuff to save at end\r\n"));
 			/*
-		         * Again a duplicate test.
-		         */
+			 * Again a duplicate test.
+			 */
 			if (sx < 0) {
 				ELRE_DEBUG(!EL_CAN_DELETE, (__F,
 				    "ERROR: cannot delete in second diff\n"));
 				terminal_deletechars(el, -sx);
 			}
 			/*
-		         * write (nls-nse) chars of new starting at nse
-		         */
+			 * write (nls-nse) chars of new starting at nse
+			 */
 			terminal_overwrite(el, nse, (size_t)(nls - nse));
 		} else {
 			ELRE_DEBUG(1, (__F,
@@ -939,10 +946,10 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		if (nsb != ne) {
 			ELRE_DEBUG(1, (__F, "with stuff to keep at end\r\n"));
 			/*
-		         * We have to recalculate fx here because we set it
-		         * to zero above as a flag saying that we hadn't done
-		         * an early first insert.
-		         */
+			 * We have to recalculate fx here because we set it
+			 * to zero above as a flag saying that we hadn't done
+			 * an early first insert.
+			 */
 			fx = (int)((nsb - nfd) - (osb - ofd));
 			if (fx > 0) {
 				/*
@@ -955,8 +962,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				    el->el_terminal.t_size.h, nfd, fx);
 			}
 			/*
-		         * write (nsb-nfd) - fx chars of new starting at
-		         * (nfd + fx)
+			 * write (nsb-nfd) - fx chars of new starting at
+			 * (nfd + fx)
 			 */
 			len = (size_t) ((nsb - nfd) - fx);
 			terminal_overwrite(el, (nfd + fx), len);
@@ -984,9 +991,9 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				terminal_insertwrite(el, nse, sx);
 			}
 			/*
-		         * write (nls-nse) - sx chars of new starting at
+			 * write (nls-nse) - sx chars of new starting at
 			 * (nse + sx)
-		         */
+			 */
 			terminal_overwrite(el, (nse + sx),
 			    (size_t)((nls - nse) - sx));
 		} else {
@@ -994,10 +1001,10 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			terminal_overwrite(el, nse, (size_t)(nls - nse));
 
 			/*
-	                 * No need to do a clear-to-end here because we were
-	                 * doing a second insert, so we will have over
-	                 * written all of the old string.
-		         */
+			 * No need to do a clear-to-end here because we were
+			 * doing a second insert, so we will have over
+			 * written all of the old string.
+			 */
 		}
 	}
 	ELRE_DEBUG(1, (__F, "done.\r\n"));

@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+typedef int speed_t;
+
 // Flag macros (fake values just for compatibility)
 #define ICANON  0x0001
 #define ECHO    0x0002
