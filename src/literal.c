@@ -76,6 +76,8 @@ literal_clear(EditLine *el)
 	l->l_idx = 0;
 }
 
+#define wcwidth(c) 1
+
 libedit_private wint_t
 literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 {

@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+int tcenablecolor(int fd);
+
 // Used by termcap API
 int tgetent(char *bp, const char *name);
 int tgetflag(const char *id);

@@ -8,11 +8,24 @@
 #include <unistd.h>
 #include <termios.h>
 
+int tcenablecolor(int fd) {
+  if (fd != STDIN_FILENO) return -1;
+  DWORD dwMode = 0;
+  HANDLE hOut = GetStdHandle(STD_INPUT_HANDLE);
+  GetConsoleMode(hOut, &dwMode);
+  SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+}
+
 /* tcgetattr / tcsetattr: minimal stubs enabling raw input mode */
 int tcgetattr(int fd, struct termios *t) {
-    if (fd != STDIN_FILENO) return -1;
+    (void)fd;
     memset(t, 0, sizeof(*t));
-    t->c_lflag = ECHO | ICANON;  // echo + canonical input default
+    t->c_lflag = ICANON | ECHO;
+    t->c_iflag = ICRNL | IXON;
+    t->c_oflag = OPOST | ONLCR;
+    t->c_cflag = CS8;
+    t->c_ispeed = B9600;
+    t->c_ospeed = B9600;
     return 0;
 }
 
@@ -95,4 +108,20 @@ int tputs(const char *s, int affcnt, int (*putc_func)(int)) {
         putc_func((unsigned char)*s++);
     }
     return OK;
+}
+
+speed_t cfgetispeed(const struct termios *t) { return t->c_ispeed; }
+speed_t cfgetospeed(const struct termios *t) { return t->c_ospeed; }
+
+int cfsetispeed(struct termios *t, speed_t speed) { t->c_ispeed = speed; return 0; }
+int cfsetospeed(struct termios *t, speed_t speed) { t->c_ospeed = speed; return 0; }
+
+int ffs(int i) {
+    int bit = 1;
+    while (i) {
+        if (i & 1) return bit;
+        i >>= 1;
+        ++bit;
+    }
+    return 0;
 }

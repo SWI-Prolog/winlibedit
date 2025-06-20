@@ -41,7 +41,9 @@ __RCSID("$NetBSD: readline.c,v 1.183 2025/06/14 13:43:50 christos Exp $");
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#if HAVE_PWD_H
 #include <pwd.h>
+#endif
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -235,6 +237,7 @@ _resize_fun(EditLine *el, void *a)
 static const char *
 _default_history_file(void)
 {
+#ifndef __MINGW64__
 	struct passwd *p;
 	static char *path;
 	size_t len;
@@ -251,6 +254,9 @@ _default_history_file(void)
 
 	(void)snprintf(path, len, "%s/.history", p->pw_dir);
 	return path;
+#else
+	return NULL;
+#endif
 }
 
 /*
@@ -981,7 +987,7 @@ _history_expand_command(const char *command, size_t offs, size_t cmdlen,
 out:
 	el_free(tmp);
 	return ev;
-	
+
 }
 
 
@@ -1250,7 +1256,7 @@ stifle_history(int max)
 		while (history_length > max) {
 			he = remove_history(0);
 			el_free(he->data);
-			el_free((void *)(unsigned long)he->line);
+			el_free((void *)(uintptr_t)he->line);
 			el_free(he);
 		}
 	}
@@ -1886,6 +1892,7 @@ filename_completion_function(const char *name, int state)
 char *
 username_completion_function(const char *text, int state)
 {
+#ifndef __MINGW64__
 	struct passwd *pass = NULL;
 
 	if (text[0] == '\0')
@@ -1908,6 +1915,9 @@ username_completion_function(const char *text, int state)
 		return NULL;
 	}
 	return strdup(pass->pw_name);
+#else
+	return NULL;
+#endif
 }
 
 

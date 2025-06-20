@@ -75,6 +75,11 @@ __FBSDID("$FreeBSD$");
 #include <wchar.h>
 #include <wctype.h>
 
+typedef unsigned char u_char;
+#ifndef NBBY
+#define NBBY 8
+#endif
+
 #ifdef __weak_alias
 __weak_alias(strvisx,_strvisx)
 #endif
@@ -97,7 +102,7 @@ static wchar_t *do_svis(wchar_t *, wint_t, int, wint_t, const wchar_t *);
 
 #undef BELL
 #define BELL L'\a'
- 
+
 #if defined(LC_C_LOCALE)
 #define iscgraph(c)      isgraph_l(c, LC_C_LOCALE)
 #else
@@ -391,7 +396,7 @@ makeextralist(int flags, const char *src)
 
 /*
  * istrsenvisx()
- * 	The main internal function.
+ *	The main internal function.
  *	All user-visible functions call this one.
  */
 static int

@@ -48,6 +48,7 @@ __RCSID("$NetBSD: unvis.c,v 1.45 2022/04/19 20:32:15 rillig Exp $");
 #include <stdio.h>
 #include <errno.h>
 #include <vis.h>
+typedef unsigned char u_char;
 
 #ifdef __weak_alias
 __weak_alias(strnunvisx,_strnunvisx)
@@ -328,7 +329,7 @@ unvis(char *cp, int c, int *astate, int flag)
 			*astate = SS(0, S_META1);
 		else if (c == '^')
 			*astate = SS(0, S_CTRL);
-		else 
+		else
 			goto bad;
 		return UNVIS_NOCHAR;
 

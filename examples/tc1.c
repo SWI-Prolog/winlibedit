@@ -32,6 +32,7 @@
  * SUCH DAMAGE.
  */
 
+#define DEBUG 1
 #include "config.h"
 #ifndef lint
 __COPYRIGHT("@(#) Copyright (c) 1992, 1993\n\
@@ -54,7 +55,9 @@ __RCSID("$NetBSD: tc1.c,v 1.7 2016/02/17 19:47:49 christos Exp $");
 /*
  * test.c: A little test program
  */
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
 #include <ctype.h>
 #include <dirent.h>
 #include <locale.h>
@@ -77,7 +80,8 @@ static	void	sig(int);
 static char *
 prompt(EditLine *el __attribute__((__unused__)))
 {
-	static char a[] = "\1\033[7m\1Edit$\1\033[0m\1 ";
+//	static char a[] = "\1\033[7m\1Edit$\1\033[0m\1 ";
+	static char a[] = "\e[7mEdit$\e[0m ";
 	static char b[] = "Edit> ";
 
 	return (continuation ? b : a);
@@ -139,9 +143,11 @@ main(int argc __attribute__((__unused__)), char *argv[])
 
 	(void) setlocale(LC_CTYPE, "");
 	(void) signal(SIGINT, sig);
+#ifndef __MINGW64__
 	(void) signal(SIGQUIT, sig);
 	(void) signal(SIGHUP, sig);
 	(void) signal(SIGTERM, sig);
+#endif
 
 	hist = history_init();		/* Init the builtin history	*/
 					/* Remember 100 events		*/
@@ -152,7 +158,7 @@ main(int argc __attribute__((__unused__)), char *argv[])
 					/* Initialize editline		*/
 	el = el_init(*argv, stdin, stdout, stderr);
 
-	el_set(el, EL_EDITOR, "vi");	/* Default editor is vi		*/
+	el_set(el, EL_EDITOR, "emacs");	/* Default editor is vi		*/
 	el_set(el, EL_SIGNAL, 1);	/* Handle signals gracefully	*/
 	el_set(el, EL_PROMPT_ESC, prompt, '\1');/* Set the prompt function */
 
@@ -277,6 +283,7 @@ main(int argc __attribute__((__unused__)), char *argv[])
 				    "Bad history arguments\n");
 				break;
 			}
+#ifndef __MINGW64__
 		} else if (el_parse(el, ac, av) == -1) {
 			switch (fork()) {
 			case 0:
@@ -296,6 +303,7 @@ main(int argc __attribute__((__unused__)), char *argv[])
 				(void) fprintf(stderr, "Exit %x\n", num);
 				break;
 			}
+#endif
 		}
 
 		tok_reset(tok);

@@ -77,9 +77,11 @@ typedef KEYMAP_ENTRY *Keymap;
 #define control_character_bit		0x40
 
 #ifndef CTRL
+#ifndef __MINGW64__
 #include <sys/ioctl.h>
 #if !defined(__sun) && !defined(__hpux) && !defined(_AIX)
 #include <sys/ttydefaults.h>
+#endif
 #endif
 #ifndef CTRL
 #define CTRL(c)		((c) & 037)
@@ -244,10 +246,10 @@ void		 rl_reset_after_signal(void);
 void		 rl_echo_signal_char(int);
 int		 rl_crlf(void);
 int		 rl_ding(void);
-char 		*rl_copy_text(int, int);
+char		*rl_copy_text(int, int);
 void		 rl_replace_line(const char *, int);
 int		 rl_delete_text(int, int);
-void 		 rl_message(const char *format, ...)
+void		 rl_message(const char *format, ...)
     __attribute__((__format__(__printf__, 1, 2)));
 void		 rl_save_prompt(void);
 void		 rl_restore_prompt(void);
@@ -266,7 +268,7 @@ void		 rl_cleanup_after_signal(void);
 void		 rl_free_line_state(void);
 int		 rl_set_keyboard_input_timeout(int);
 int		 rl_abort(int, int);
-int	         rl_set_keymap_name(const char *, Keymap);
+int		 rl_set_keymap_name(const char *, Keymap);
 histdata_t	 free_history_entry(HIST_ENTRY *);
 void		 _rl_erase_entire_line(void);
 

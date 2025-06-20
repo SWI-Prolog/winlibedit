@@ -44,7 +44,9 @@ __RCSID("$NetBSD: vi.c,v 1.64 2021/08/28 17:17:47 christos Exp $");
 /*
  * vi.c: Vi mode commands.
  */
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
 #include <ctype.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -1000,6 +1002,7 @@ libedit_private el_action_t
 /*ARGSUSED*/
 vi_histedit(EditLine *el, wint_t c __attribute__((__unused__)))
 {
+#ifndef __MINGW64__
 	int fd;
 	pid_t pid;
 	ssize_t st;
@@ -1074,6 +1077,7 @@ error:
 	el_free(cp);
 	close(fd);
 	unlink(tempfile);
+#endif/*__MINGW64__*/
 	return CC_ERROR;
 }
 

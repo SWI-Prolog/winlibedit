@@ -41,7 +41,9 @@ __RCSID("$NetBSD: filecomplete.c,v 1.73 2023/04/25 17:51:32 christos Exp $");
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +67,7 @@ static const wchar_t break_chars[] = L" \t\n\"\\'`@$><=;|&{(";
 char *
 fn_tilde_expand(const char *txt)
 {
+#ifndef __MINGW64__
 #if defined(HAVE_GETPW_R_POSIX) || defined(HAVE_GETPW_R_DRAFT)
 	struct passwd pwres;
 	char pwbuf[1024];
@@ -125,6 +128,9 @@ fn_tilde_expand(const char *txt)
 	(void)snprintf(temp, len, "%s/%s", pass->pw_dir, txt);
 
 	return temp;
+#else
+	return NULL;
+#endif
 }
 
 static int
@@ -304,7 +310,7 @@ escape_filename(EditLine * el, const char *filename, int single_match,
 	}
 
 	/* close the quotes if single match and the match is not a directory */
-	if (single_match && (append_char && append_char[0] == ' ')) { 
+	if (single_match && (append_char && append_char[0] == ' ')) {
 		if (s_quoted)
 			escaped_str[offset++] = '\'';
 		else if (d_quoted)

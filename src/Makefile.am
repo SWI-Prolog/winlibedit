@@ -50,6 +50,7 @@ endif
 if !HAVE_UNVIS
 libedit_la_SOURCES += unvis.c
 endif
+libedit_la_SOURCES += win_ncurses.c
 
 EXTRA_DIST = makelist shlib_version
 nobase_include_HEADERS = histedit.h editline/readline.h
