@@ -534,11 +534,33 @@ el_wget(EditLine *el, int op, ...)
 		}
 		break;
 	}
-
 	case EL_WORDCHARS:
 		rv = map_get_wordchars(el, va_arg(ap, const wchar_t **));
 		break;
+	case EL_GETHANDLE:
+	{
+		int what;
+		HANDLE **fpp;
 
+		what = va_arg(ap, int);
+		fpp = va_arg(ap, HANDLE **);
+		rv = 0;
+		switch (what) {
+		case 0:
+			*fpp = el->el_hIn;
+			break;
+		case 1:
+			*fpp = el->el_hOut;
+			break;
+		case 2:
+			*fpp = el->el_hErr;
+			break;
+		default:
+			rv = -1;
+			break;
+		}
+		break;
+	}
 	default:
 		rv = -1;
 		break;

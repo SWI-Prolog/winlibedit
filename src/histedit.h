@@ -151,7 +151,7 @@ unsigned char	_el_fn_sh_complete(EditLine *, int);
 #define	EL_UNBUFFERED	15	/* , int);			      set/get */
 #define	EL_PREP_TERM	16	/* , int);			      set     */
 #define	EL_GETTC	17	/* , const Char *, ..., NULL);		  get */
-#define	EL_GETFP	18	/* , int, FILE **);		          get */
+#define	EL_GETFP	18	/* , int, FILE **);			  get */
 #define	EL_SETFP	19	/* , int, FILE *);		      set     */
 #define	EL_REFRESH	20	/* , void);			      set     */
 #define	EL_PROMPT_ESC	21	/* , prompt_func, Char);	      set/get */
@@ -160,6 +160,7 @@ unsigned char	_el_fn_sh_complete(EditLine *, int);
 #define	EL_ALIAS_TEXT	24	/* , el_afunc_t, void *);	      set     */
 #define	EL_SAFEREAD	25	/* , int);			      set/get */
 #define	EL_WORDCHARS	26	/* , const Char *);		      set/get */
+#define	EL_GETHANDLE	27	/* , int, HANDLE **);		 get */
 
 #define	EL_BUILTIN_GETCFN	(NULL)
 
