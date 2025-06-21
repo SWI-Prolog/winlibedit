@@ -344,8 +344,7 @@ node__try(EditLine *el, keymacro_node_t *ptr, const wchar_t *str,
 				el_free(ptr->val.str);
 			break;
 		default:
-			EL_ABORT((el->el_errfile, "Bad XK_ type %d\n",
-			    ptr->type));
+			EL_ABORT(el, "Bad XK_ type %d\n", ptr->type);
 		}
 
 		switch (ptr->type = ntype) {
@@ -357,7 +356,7 @@ node__try(EditLine *el, keymacro_node_t *ptr, const wchar_t *str,
 				return -1;
 			break;
 		default:
-			EL_ABORT((el->el_errfile, "Bad XK_ type %d\n", ntype));
+			EL_ABORT(el, "Bad XK_ type %d\n", ntype);
 		}
 	} else {
 		/* still more chars to go */
@@ -441,7 +440,7 @@ node__put(EditLine *el, keymacro_node_t *ptr)
 			el_free(ptr->val.str);
 		break;
 	default:
-		EL_ABORT((el->el_errfile, "Bad XK_ type %d\n", ptr->type));
+		EL_ABORT(el, "Bad XK_ type %d\n", ptr->type);
 	}
 	el_free(ptr);
 }
@@ -610,7 +609,7 @@ keymacro_kprint(EditLine *el, const wchar_t *key, keymacro_value_t *val,
 
 			break;
 		default:
-			EL_ABORT((el->el_errfile, "Bad XK_ type %d\n", ntype));
+			EL_ABORT(el, "Bad XK_ type %d\n", ntype);
 		}
 	else
 		(void) el_printf(el, EL_PTR_OUT, fmt, ct_encode_string(key,

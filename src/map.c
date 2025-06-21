@@ -906,11 +906,11 @@ map_init(EditLine *el)
          */
 #ifdef MAP_DEBUG
 	if (sizeof(el_map_emacs) != N_KEYS * sizeof(el_action_t))
-		EL_ABORT((el->el_errfile, "Emacs map incorrect\n"));
+		EL_ABORT(el, "Emacs map incorrect\n");
 	if (sizeof(el_map_vi_command) != N_KEYS * sizeof(el_action_t))
-		EL_ABORT((el->el_errfile, "Vi command map incorrect\n"));
+		EL_ABORT(el, "Vi command map incorrect\n");
 	if (sizeof(el_map_vi_insert) != N_KEYS * sizeof(el_action_t))
-		EL_ABORT((el->el_errfile, "Vi insert map incorrect\n"));
+		EL_ABORT(el, "Vi insert map incorrect\n");
 #endif
 
 	el->el_map.alt = el_calloc(N_KEYS, sizeof(*el->el_map.alt));
@@ -1244,7 +1244,7 @@ map_print_some_keys(EditLine *el, el_action_t *map, wint_t first, wint_t last)
 		    first, el->el_map.alt[first]);
 	}
 #endif
-	EL_ABORT((el->el_errfile, "Error printing keys\n"));
+	EL_ABORT(el, "Error printing keys\n");
 }
 
 
@@ -1422,7 +1422,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 
 	/* coverity[dead_error_begin] */
 	default:
-		EL_ABORT((el->el_errfile, "Bad XK_ type %d\n", ntype));
+		EL_ABORT(el, "Bad XK_ type %d\n", ntype);
 	}
 	return 0;
 }

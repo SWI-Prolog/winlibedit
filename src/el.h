@@ -156,13 +156,13 @@ libedit_private EditLine *el_init_internal(const char *, FILE *, FILE *,
     FILE *, int, int, int, int);
 
 #ifdef DEBUG
-#define	EL_ABORT(a)	do { \
+#define	EL_ABORT(el,...) do {					      \
 				el_printf(el, EL_PTR_ERR, "%s, %d: ", \
 					 __FILE__, __LINE__); \
-				fprintf a; \
+				el_printf(el, EL_PTR_ERR, __VA_ARGS__);  \
 				abort(); \
 			} while (0)
 #else
-#define EL_ABORT(a)	abort()
+#define EL_ABORT(el,...) abort()
 #endif
 #endif /* _h_el */

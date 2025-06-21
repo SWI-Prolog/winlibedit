@@ -270,7 +270,7 @@ read_getcmd(EditLine *el, el_action_t *cmdnum, wchar_t *ch)
 			case XK_NOD:
 				return -1;
 			default:
-				EL_ABORT((el->el_errfile, "Bad XK_ type \n"));
+				EL_ABORT(el, "Bad XK_ type \n");
 			}
 		}
 	} while (cmd == ED_SEQUENCE_LEAD_IN);

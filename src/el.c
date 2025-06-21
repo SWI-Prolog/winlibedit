@@ -308,7 +308,7 @@ el_wset(EditLine *el, int op, ...)
 
 		default:
 			rv = -1;
-			EL_ABORT((el->el_errfile, "Bad op %d\n", op));
+			EL_ABORT(el, "Bad op %d\n", op);
 		}
 		break;
 	}
