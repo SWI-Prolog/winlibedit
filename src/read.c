@@ -285,10 +285,9 @@ static int
 read_char(EditLine *el, wchar_t *cp)
 {
 #ifdef __MINGW64__
-  HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
   DWORD done;
   char buffer[10];
-  BOOL rc = ReadConsoleW(hIn,
+  BOOL rc = ReadConsoleW(el->el_hIn,
 			 buffer,
 			 1,
 			 &done,

@@ -105,6 +105,12 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	if (el == NULL)
 		return NULL;
 
+#ifdef __MINGW64__
+	el->el_hIn  = GetStdHandle(STD_INPUT_HANDLE);
+	el->el_hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	el->el_hErr = GetStdHandle(STD_ERROR_HANDLE);
+#endif
+
 	el->el_infile = fin;
 	el->el_outfile = fout;
 	el->el_errfile = ferr;

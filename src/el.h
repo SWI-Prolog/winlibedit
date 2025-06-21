@@ -69,8 +69,8 @@ typedef struct coord_t {		/* Position on the screen	*/
 
 typedef struct el_line_t {
 	wchar_t		*buffer;	/* Input line			*/
-	wchar_t	        *cursor;	/* Cursor position		*/
-	wchar_t	        *lastchar;	/* Last character		*/
+	wchar_t		*cursor;	/* Cursor position		*/
+	wchar_t		*lastchar;	/* Last character		*/
 	const wchar_t	*limit;		/* Max position			*/
 } el_line_t;
 
@@ -106,11 +106,19 @@ typedef struct el_state_t {
 #include "hist.h"
 #include "map.h"
 #include "sig.h"
+#ifdef __MINGW64__
+#include <windows.h>
+#endif
 
 struct el_read_t;
 
 struct editline {
 	wchar_t		 *el_prog;	/* the program name		*/
+#if __MINGW64__
+	HANDLE		 *el_hIn;
+	HANDLE		 *el_hOut;
+	HANDLE		 *el_hErr;
+#endif
 	FILE		 *el_infile;	/* Stdio stuff			*/
 	FILE		 *el_outfile;	/* Stdio stuff			*/
 	FILE		 *el_errfile;	/* Stdio stuff			*/

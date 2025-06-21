@@ -56,6 +56,7 @@ __RCSID("$NetBSD: terminal.c,v 1.46 2023/02/04 14:34:28 christos Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 #ifdef HAVE_TERMCAP_H
 #include <termcap.h>
 #endif
@@ -1665,4 +1666,36 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		break;
 	}
 	return 0;
+}
+
+
+libedit_private int
+el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
+{ va_list args;
+
+  va_start(args, fmt);
+#if __MINGW64__
+  char buf[1024];
+  HANDLE out;
+
+  int len = vsnprintf(buf, sizeof(buf)-1, fmt, args);
+  if ( to == EL_PTR_OUT )
+    out = el->el_hOut;
+  else
+    out = el->el_hErr;
+
+  assert(len < sizeof(buf));
+  WriteConsoleA(out, buf, len, NULL, NULL);
+  return len;
+#else
+  FILE *out;
+
+  if ( to == EL_PTR_OUT )
+    out = el->el_outfile;
+  else
+    out = el_errfile;
+
+  return vfprintf(out, fmt, args);
+#endif
+  va_end(args);
 }

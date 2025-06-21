@@ -131,4 +131,12 @@ libedit_private void	terminal__flush(EditLine *);
 #define	EL_HAS_AUTO_MARGINS	(EL_FLAGS & TERM_HAS_AUTO_MARGINS)
 #define	EL_HAS_MAGIC_MARGINS	(EL_FLAGS & TERM_HAS_MAGIC_MARGINS)
 
+typedef enum
+{ EL_PTR_OUT,
+  EL_PTR_ERR
+} el_prt_stream;
+
+libedit_private int el_printf(EditLine *el, el_prt_stream to,
+			      const char *fmt, ...);
+
 #endif /* _h_el_terminal */

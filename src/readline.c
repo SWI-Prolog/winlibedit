@@ -2273,7 +2273,7 @@ _rl_event_read_char(EditLine *el, wchar_t *wc)
 
 		(*rl_event_hook)();
 
-#if defined(FIONREAD)
+#if defined(FIONREAD) && !defined(__MINGW64__)
 		if (ioctl(el->el_infd, FIONREAD, &n) < 0)
 			return -1;
 		if (n)
