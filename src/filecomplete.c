@@ -783,7 +783,9 @@ fn_complete2(EditLine *el,
 			(void)el_printf(el, EL_PTR_OUT,
 			    "Display all %zu possibilities? (y or n) ",
 			    matches_num);
+#ifndef __MINGW64__
 			(void)fflush(el->el_outfile);
+#endif
 			if (getc(stdin) != 'y')
 				match_display = 0;
 			(void)el_printf(el, EL_PTR_OUT, "\n");

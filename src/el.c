@@ -112,7 +112,9 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 #endif
 
 	el->el_infile = fin;
+#ifndef __MINGW64__
 	el->el_outfile = fout;
+#endif
 	el->el_errfile = ferr;
 
 	el->el_infd = fdin;
@@ -382,6 +384,7 @@ el_wset(EditLine *el, int op, ...)
 		rv = 0;
 		break;
 
+#ifndef __MINGW64__
 	case EL_SETFP:
 	{
 		FILE *fp;
@@ -410,6 +413,7 @@ el_wset(EditLine *el, int op, ...)
 		}
 		break;
 	}
+#endif
 
 	case EL_REFRESH:
 		re_clear_display(el);
@@ -510,6 +514,7 @@ el_wget(EditLine *el, int op, ...)
 		rv = 0;
 		break;
 
+#ifndef __MINGW64__
 	case EL_GETFP:
 	{
 		int what;
@@ -534,6 +539,7 @@ el_wget(EditLine *el, int op, ...)
 		}
 		break;
 	}
+#endif
 	case EL_WORDCHARS:
 		rv = map_get_wordchars(el, va_arg(ap, const wchar_t **));
 		break;

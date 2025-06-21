@@ -1211,6 +1211,9 @@ terminal_putc(int c)
 static void
 terminal_tputs(EditLine *el, const char *cap, int affcnt)
 {
+#ifdef __MINGW64__
+        el_printf(el, EL_PTR_OUT, "%s", cap);
+#else
 #ifdef _REENTRANT
 	pthread_mutex_lock(&terminal_mutex);
 #endif
@@ -1218,6 +1221,7 @@ terminal_tputs(EditLine *el, const char *cap, int affcnt)
 	(void)tputs(cap, affcnt, terminal_putc);
 #ifdef _REENTRANT
 	pthread_mutex_unlock(&terminal_mutex);
+#endif
 #endif
 }
 
@@ -1232,12 +1236,20 @@ terminal__putc(EditLine *el, wint_t c)
 	if (c == MB_FILL_CHAR)
 		return 0;
 	if (c & EL_LITERAL)
+#ifdef __MINGW64__
+		return el_printf(el, EL_PTR_OUT, "%s", literal_get(el, c));
+#else
 		return fputs(literal_get(el, c), el->el_outfile);
+#endif
 	i = ct_encode_char(buf, (size_t)MB_LEN_MAX, c);
 	if (i <= 0)
 		return (int)i;
 	buf[i] = '\0';
+#ifdef __MINGW64__
+	return el_printf(el, EL_PTR_OUT, "%s", buf);
+#else
 	return fputs(buf, el->el_outfile);
+#endif
 }
 
 /* terminal__flush():
@@ -1246,8 +1258,9 @@ terminal__putc(EditLine *el, wint_t c)
 libedit_private void
 terminal__flush(EditLine *el)
 {
-
+#ifndef __MINGW64__
 	(void) fflush(el->el_outfile);
+#endif
 }
 
 /* terminal_writec():
@@ -1303,7 +1316,11 @@ terminal_telltc(EditLine *el, int argc __attribute__((__unused__)),
 		(void) el_printf(el, EL_PTR_OUT, "\t%25s (%s) == %s\n",
 		    t->long_name, t->name, ub);
 	}
+#ifdef __MINGW64__
+	(void) el_printf(el, EL_PTR_OUT, "\n");
+#else
 	(void) fputc('\n', el->el_outfile);
+#endif
 	return 0;
 }
 
