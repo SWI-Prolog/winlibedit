@@ -125,8 +125,8 @@ struct editline {
 	FILE		 *el_errfile;	/* Stdio stuff			*/
 	int		  el_infd;	/* Input file descriptor	*/
 	int		  el_outfd;	/* Output file descriptor	*/
-#endif
 	int		  el_errfd;	/* Error file descriptor	*/
+#endif
 	int		  el_flags;	/* Various flags.		*/
 	coord_t		  el_cursor;	/* Cursor location		*/
 	wint_t		**el_display;	/* Real screen image = what is there */

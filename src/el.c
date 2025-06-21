@@ -118,8 +118,8 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 
 	el->el_infd = fdin;
 	el->el_outfd = fdout;
-#endif
 	el->el_errfd = fderr;
+#endif
 
 	el->el_prog = wcsdup(ct_decode_string(prog, &el->el_scratch));
 	if (el->el_prog == NULL) {
