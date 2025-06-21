@@ -590,7 +590,7 @@ keymacro_kprint(EditLine *el, const wchar_t *key, keymacro_value_t *val,
 			(void) keymacro__decode_str(val->str, unparsbuf,
 			    sizeof(unparsbuf),
 			    ntype == XK_STR ? "\"\"" : "[]");
-			(void) fprintf(el->el_outfile, fmt,
+			(void) el_printf(el, EL_PTR_OUT, fmt,
 			    ct_encode_string(key, &el->el_scratch), unparsbuf);
 			break;
 		case XK_CMD:
@@ -598,13 +598,13 @@ keymacro_kprint(EditLine *el, const wchar_t *key, keymacro_value_t *val,
 				if (val->cmd == fp->func) {
                     wcstombs(unparsbuf, fp->name, sizeof(unparsbuf));
                     unparsbuf[sizeof(unparsbuf) -1] = '\0';
-					(void) fprintf(el->el_outfile, fmt,
+					(void) el_printf(el, EL_PTR_OUT, fmt,
                         ct_encode_string(key, &el->el_scratch), unparsbuf);
 					break;
 				}
 #ifdef DEBUG_KEY
 			if (fp->name == NULL)
-				(void) fprintf(el->el_outfile,
+				(void) el_printf(el, EL_PTR_OUT,
 				    "BUG! Command not found.\n");
 #endif
 
@@ -613,7 +613,7 @@ keymacro_kprint(EditLine *el, const wchar_t *key, keymacro_value_t *val,
 			EL_ABORT((el->el_errfile, "Bad XK_ type %d\n", ntype));
 		}
 	else
-		(void) fprintf(el->el_outfile, fmt, ct_encode_string(key,
+		(void) el_printf(el, EL_PTR_OUT, fmt, ct_encode_string(key,
 		    &el->el_scratch), "no input");
 }
 

@@ -1175,7 +1175,7 @@ map_print_key(EditLine *el, el_action_t *map, const wchar_t *in)
 		ep = &el->el_map.help[el->el_map.nfunc];
 		for (bp = el->el_map.help; bp < ep; bp++)
 			if (bp->func == map[(unsigned char) *in]) {
-				(void) fprintf(el->el_outfile,
+				(void) el_printf(el, EL_PTR_OUT,
 				    "%s\t->\t%ls\n", outbuf, bp->name);
 				return;
 			}
@@ -1202,7 +1202,7 @@ map_print_some_keys(EditLine *el, el_action_t *map, wint_t first, wint_t last)
 		if (first == last) {
 			(void) keymacro__decode_str(firstbuf, unparsbuf,
 			    sizeof(unparsbuf), STRQQ);
-			(void) fprintf(el->el_outfile,
+			(void) el_printf(el, EL_PTR_OUT,
 			    "%-15s->  is undefined\n", unparsbuf);
 		}
 		return;
@@ -1213,14 +1213,14 @@ map_print_some_keys(EditLine *el, el_action_t *map, wint_t first, wint_t last)
 			if (first == last) {
 				(void) keymacro__decode_str(firstbuf, unparsbuf,
 				    sizeof(unparsbuf), STRQQ);
-				(void) fprintf(el->el_outfile, "%-15s->  %ls\n",
+				(void) el_printf(el, EL_PTR_OUT, "%-15s->  %ls\n",
 				    unparsbuf, bp->name);
 			} else {
 				(void) keymacro__decode_str(firstbuf, unparsbuf,
 				    sizeof(unparsbuf), STRQQ);
 				(void) keymacro__decode_str(lastbuf, extrabuf,
 				    sizeof(extrabuf), STRQQ);
-				(void) fprintf(el->el_outfile,
+				(void) el_printf(el, EL_PTR_OUT,
 				    "%-4s to %-7s->  %ls\n",
 				    unparsbuf, extrabuf, bp->name);
 			}
@@ -1231,16 +1231,16 @@ map_print_some_keys(EditLine *el, el_action_t *map, wint_t first, wint_t last)
 	if (map == el->el_map.key) {
 		(void) keymacro__decode_str(firstbuf, unparsbuf,
 		    sizeof(unparsbuf), STRQQ);
-		(void) fprintf(el->el_outfile,
+		(void) el_printf(el, EL_PTR_OUT,
 		    "BUG!!! %s isn't bound to anything.\n", unparsbuf);
-		(void) fprintf(el->el_outfile, "el->el_map.key[%d] == %d\n",
+		(void) el_printf(el, EL_PTR_OUT, "el->el_map.key[%d] == %d\n",
 		    first, el->el_map.key[first]);
 	} else {
 		(void) keymacro__decode_str(firstbuf, unparsbuf,
 		    sizeof(unparsbuf), STRQQ);
-		(void) fprintf(el->el_outfile,
+		(void) el_printf(el, EL_PTR_OUT,
 		    "BUG!!! %s isn't bound to anything.\n", unparsbuf);
-		(void) fprintf(el->el_outfile, "el->el_map.alt[%d] == %d\n",
+		(void) el_printf(el, EL_PTR_OUT, "el->el_map.alt[%d] == %d\n",
 		    first, el->el_map.alt[first]);
 	}
 #endif
@@ -1256,7 +1256,7 @@ map_print_all_keys(EditLine *el)
 {
 	int prev, i;
 
-	(void) fprintf(el->el_outfile, "Standard key bindings\n");
+	(void) el_printf(el, EL_PTR_OUT, "Standard key bindings\n");
 	prev = 0;
 	for (i = 0; i < N_KEYS; i++) {
 		if (el->el_map.key[prev] == el->el_map.key[i])
@@ -1266,7 +1266,7 @@ map_print_all_keys(EditLine *el)
 	}
 	map_print_some_keys(el, el->el_map.key, prev, i - 1);
 
-	(void) fprintf(el->el_outfile, "Alternative key bindings\n");
+	(void) el_printf(el, EL_PTR_OUT, "Alternative key bindings\n");
 	prev = 0;
 	for (i = 0; i < N_KEYS; i++) {
 		if (el->el_map.alt[prev] == el->el_map.alt[i])
@@ -1276,9 +1276,9 @@ map_print_all_keys(EditLine *el)
 	}
 	map_print_some_keys(el, el->el_map.alt, prev, i - 1);
 
-	(void) fprintf(el->el_outfile, "Multi-character bindings\n");
+	(void) el_printf(el, EL_PTR_OUT, "Multi-character bindings\n");
 	keymacro_print(el, L"");
-	(void) fprintf(el->el_outfile, "Arrow key bindings\n");
+	(void) el_printf(el, EL_PTR_OUT, "Arrow key bindings\n");
 	terminal_print_arrow(el, L"");
 }
 
@@ -1335,7 +1335,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 			case 'l':
 				ep = &el->el_map.help[el->el_map.nfunc];
 				for (bp = el->el_map.help; bp < ep; bp++)
-					(void) fprintf(el->el_outfile,
+					(void) el_printf(el, EL_PTR_OUT,
 					    "%ls\n\t%ls\n",
 					    bp->name, bp->description);
 				return 0;

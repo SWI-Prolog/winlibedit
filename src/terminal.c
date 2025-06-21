@@ -1277,18 +1277,18 @@ terminal_telltc(EditLine *el, int argc __attribute__((__unused__)),
 	const struct termcapstr *t;
 	char **ts;
 
-	(void) fprintf(el->el_outfile, "\n\tYour terminal has the\n");
-	(void) fprintf(el->el_outfile, "\tfollowing characteristics:\n\n");
-	(void) fprintf(el->el_outfile, "\tIt has %d columns and %d lines\n",
+	(void) el_printf(el, EL_PTR_OUT, "\n\tYour terminal has the\n");
+	(void) el_printf(el, EL_PTR_OUT, "\tfollowing characteristics:\n\n");
+	(void) el_printf(el, EL_PTR_OUT, "\tIt has %d columns and %d lines\n",
 	    Val(T_co), Val(T_li));
-	(void) fprintf(el->el_outfile,
+	(void) el_printf(el, EL_PTR_OUT,
 	    "\tIt has %s meta key\n", EL_HAS_META ? "a" : "no");
-	(void) fprintf(el->el_outfile,
+	(void) el_printf(el, EL_PTR_OUT,
 	    "\tIt can%suse tabs\n", EL_CAN_TAB ? " " : "not ");
-	(void) fprintf(el->el_outfile, "\tIt %s automatic margins\n",
+	(void) el_printf(el, EL_PTR_OUT, "\tIt %s automatic margins\n",
 	    EL_HAS_AUTO_MARGINS ? "has" : "does not have");
 	if (EL_HAS_AUTO_MARGINS)
-		(void) fprintf(el->el_outfile, "\tIt %s magic margins\n",
+		(void) el_printf(el, EL_PTR_OUT, "\tIt %s magic margins\n",
 		    EL_HAS_MAGIC_MARGINS ? "has" : "does not have");
 
 	for (t = tstr, ts = el->el_terminal.t_str; t->name != NULL; t++, ts++) {
@@ -1300,7 +1300,7 @@ terminal_telltc(EditLine *el, int argc __attribute__((__unused__)),
 		} else {
 			ub = "(empty)";
 		}
-		(void) fprintf(el->el_outfile, "\t%25s (%s) == %s\n",
+		(void) el_printf(el, EL_PTR_OUT, "\t%25s (%s) == %s\n",
 		    t->long_name, t->name, ub);
 	}
 	(void) fputc('\n', el->el_outfile);
@@ -1490,28 +1490,28 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 	if (!*argv || *argv[0] == '\0')
 		return 0;
 	if (wcscmp(*argv, L"tabs") == 0) {
-		(void) fprintf(el->el_outfile, fmts, EL_CAN_TAB ? "yes" : "no");
+		(void) el_printf(el, EL_PTR_OUT, fmts, EL_CAN_TAB ? "yes" : "no");
 		return 0;
 	} else if (wcscmp(*argv, L"meta") == 0) {
-		(void) fprintf(el->el_outfile, fmts, Val(T_km) ? "yes" : "no");
+		(void) el_printf(el, EL_PTR_OUT, fmts, Val(T_km) ? "yes" : "no");
 		return 0;
 	} else if (wcscmp(*argv, L"xn") == 0) {
-		(void) fprintf(el->el_outfile, fmts, EL_HAS_MAGIC_MARGINS ?
+		(void) el_printf(el, EL_PTR_OUT, fmts, EL_HAS_MAGIC_MARGINS ?
 		    "yes" : "no");
 		return 0;
 	} else if (wcscmp(*argv, L"am") == 0) {
-		(void) fprintf(el->el_outfile, fmts, EL_HAS_AUTO_MARGINS ?
+		(void) el_printf(el, EL_PTR_OUT, fmts, EL_HAS_AUTO_MARGINS ?
 		    "yes" : "no");
 		return 0;
 	} else if (wcscmp(*argv, L"baud") == 0) {
-		(void) fprintf(el->el_outfile, fmtd, (int)el->el_tty.t_speed);
+		(void) el_printf(el, EL_PTR_OUT, fmtd, (int)el->el_tty.t_speed);
 		return 0;
 	} else if (wcscmp(*argv, L"rows") == 0 ||
                    wcscmp(*argv, L"lines") == 0) {
-		(void) fprintf(el->el_outfile, fmtd, Val(T_li));
+		(void) el_printf(el, EL_PTR_OUT, fmtd, Val(T_li));
 		return 0;
 	} else if (wcscmp(*argv, L"cols") == 0) {
-		(void) fprintf(el->el_outfile, fmtd, Val(T_co));
+		(void) el_printf(el, EL_PTR_OUT, fmtd, Val(T_co));
 		return 0;
 	}
 	/*

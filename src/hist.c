@@ -196,7 +196,7 @@ hist_command(EditLine *el, int argc, const wchar_t **argv)
 				buf = nbuf;
 			}
 			strvis(buf, ptr, VIS_NL);
-			(void) fprintf(el->el_outfile, "%d\t%s\n",
+			(void) el_printf(el, EL_PTR_OUT, "%d\t%s\n",
 			    hno++, buf);
 		}
 		el_free(buf);

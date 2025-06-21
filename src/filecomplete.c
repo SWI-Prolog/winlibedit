@@ -575,13 +575,13 @@ fn_display_match_list(EditLine * el, char **matches, size_t num, size_t width,
 			thisguy = line + col * lines;
 			if (thisguy >= num)
 				break;
-			(void)fprintf(el->el_outfile, "%s%s%s",
+			(void)el_printf(el, EL_PTR_OUT, "%s%s%s",
 			    col == 0 ? "" : " ", matches[thisguy],
 				(*app_func)(matches[thisguy]));
-			(void)fprintf(el->el_outfile, "%-*s",
+			(void)el_printf(el, EL_PTR_OUT, "%-*s",
 				(int) (width - strlen(matches[thisguy])), "");
 		}
-		(void)fprintf(el->el_outfile, "\n");
+		(void)el_printf(el, EL_PTR_OUT, "\n");
 	}
 }
 
@@ -773,20 +773,20 @@ fn_complete2(EditLine *el,
 		matches_num = (size_t)(i - 1);
 
 		/* newline to get on next line from command line */
-		(void)fprintf(el->el_outfile, "\n");
+		(void)el_printf(el, EL_PTR_OUT, "\n");
 
 		/*
 		 * If there are too many items, ask user for display
 		 * confirmation.
 		 */
 		if (matches_num > query_items) {
-			(void)fprintf(el->el_outfile,
+			(void)el_printf(el, EL_PTR_OUT,
 			    "Display all %zu possibilities? (y or n) ",
 			    matches_num);
 			(void)fflush(el->el_outfile);
 			if (getc(stdin) != 'y')
 				match_display = 0;
-			(void)fprintf(el->el_outfile, "\n");
+			(void)el_printf(el, EL_PTR_OUT, "\n");
 		}
 
 		if (match_display) {

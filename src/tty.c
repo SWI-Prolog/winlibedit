@@ -1198,7 +1198,7 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 		size_t len = 0, st = 0, cu;
 		for (m = ttymodes; m->m_name; m++) {
 			if (m->m_type != i) {
-				(void) fprintf(el->el_outfile, "%s%s",
+				(void) el_printf(el, EL_PTR_OUT, "%s%s",
 				    i != -1 ? "\n" : "",
 				    el->el_tty.t_t[z][m->m_type].t_name);
 				i = m->m_type;
@@ -1221,21 +1221,21 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 
 				if (len + cu >=
 				    (size_t)el->el_terminal.t_size.h) {
-					(void) fprintf(el->el_outfile, "\n%*s",
+					(void) el_printf(el, EL_PTR_OUT, "\n%*s",
 					    (int)st, "");
 					len = st + cu;
 				} else
 					len += cu;
 
 				if (x != '\0')
-					(void) fprintf(el->el_outfile, "%c%s ",
+					(void) el_printf(el, EL_PTR_OUT, "%c%s ",
 					    x, m->m_name);
 				else
-					(void) fprintf(el->el_outfile, "%s ",
+					(void) el_printf(el, EL_PTR_OUT, "%s ",
 					    m->m_name);
 			}
 		}
-		(void) fprintf(el->el_outfile, "\n");
+		(void) el_printf(el, EL_PTR_OUT, "\n");
 		return 0;
 	}
 	while (argv && (s = *argv++)) {
