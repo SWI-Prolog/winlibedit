@@ -154,8 +154,18 @@ struct editline {
 };
 
 libedit_private int	el_editmode(EditLine *, int, const wchar_t **);
-libedit_private EditLine *el_init_internal(const char *, FILE *, FILE *,
-    FILE *, int, int, int, int);
+#ifdef __MINGW64__
+libedit_private EditLine *el_init_internal(
+  const char *prog,
+  HANDLE fin, HANDLE fout, HANDLE ferr,
+  int flags);
+#else
+libedit_private EditLine *el_init_internal(
+  const char *prog,
+  FILE *fin, FILE *fout, FILE *ferr,
+  int fdin, int fdout, int fderr,
+  int flags);
+#endif
 
 #ifdef DEBUG
 #define	EL_ABORT(el,...) do {					      \

@@ -66,6 +66,9 @@ __RCSID("$NetBSD: tc1.c,v 1.7 2016/02/17 19:47:49 christos Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef __MINGW64__
+#include <windows.h>
+#endif
 
 #include "histedit.h"
 
@@ -156,7 +159,14 @@ main(int argc __attribute__((__unused__)), char *argv[])
 	tok  = tok_init(NULL);		/* Initialize the tokenizer	*/
 
 					/* Initialize editline		*/
+#ifdef __MINGW64__
+	el = el_init_handles(*argv,
+			     GetStdHandle(STD_INPUT_HANDLE),
+			     GetStdHandle(STD_OUTPUT_HANDLE),
+			     GetStdHandle(STD_ERROR_HANDLE));
+#else
 	el = el_init(*argv, stdin, stdout, stderr);
+#endif
 
 	el_set(el, EL_EDITOR, "emacs");	/* Default editor is vi		*/
 	el_set(el, EL_SIGNAL, 1);	/* Handle signals gracefully	*/

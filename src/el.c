@@ -86,19 +86,14 @@ char *secure_getenv(char const *name)
 }
 #endif
 
-/* el_init():
- *	Initialize editline and set default parameters.
- */
-EditLine *
-el_init(const char *prog, FILE *fin, FILE *fout, FILE *ferr)
-{
-    return el_init_fd(prog, fin, fout, ferr, fileno(fin), fileno(fout),
-	fileno(ferr));
-}
-
 libedit_private EditLine *
+#ifdef __MINGW64__
+el_init_internal(const char *prog, HANDLE fin, HANDLE fout, HANDLE ferr,
+		 int flags)
+#else
 el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
-    int fdin, int fdout, int fderr, int flags)
+		 int fdin, int fdout, int fderr, int flags)
+#endif
 {
 	EditLine *el = el_calloc(1, sizeof(*el));
 
@@ -106,9 +101,9 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 		return NULL;
 
 #ifdef __MINGW64__
-	el->el_hIn  = GetStdHandle(STD_INPUT_HANDLE);
-	el->el_hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	el->el_hErr = GetStdHandle(STD_ERROR_HANDLE);
+	el->el_hIn  = fin;
+	el->el_hOut = fout;
+	el->el_hErr = ferr;
 #endif
 
 #ifndef __MINGW64__
@@ -154,12 +149,30 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	return el;
 }
 
+#if __MINGW64__
+EditLine *
+el_init_handles(const char *prog, HANDLE fin, HANDLE fout, HANDLE ferr)
+{ return el_init_internal(prog, fin, fout, ferr, 0);
+}
+
+#else
+/* el_init():
+ *	Initialize editline and set default parameters.
+ */
+EditLine *
+el_init(const char *prog, FILE *fin, FILE *fout, FILE *ferr)
+{
+    return el_init_fd(prog, fin, fout, ferr, fileno(fin), fileno(fout),
+	fileno(ferr));
+}
+
 EditLine *
 el_init_fd(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
     int fdin, int fdout, int fderr)
 {
 	return el_init_internal(prog, fin, fout, ferr, fdin, fdout, fderr, 0);
 }
+#endif
 
 /* el_end():
  *	Clean up.

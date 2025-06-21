@@ -340,9 +340,17 @@ rl_initialize(void)
 #endif
 		editmode = 0;
 
+#ifdef __MINGW64__
+	e = el_init_internal(rl_readline_name,
+			     GetStdHandle(STD_INPUT_HANDLE),
+			     GetStdHandle(STD_OUTPUT_HANDLE),
+			     GetStdHandle(STD_ERROR_HANDLE),
+			     NO_RESET);
+#else
 	e = el_init_internal(rl_readline_name, rl_instream, rl_outstream,
 	    stderr, fileno(rl_instream), fileno(rl_outstream), fileno(stderr),
 	    NO_RESET);
+#endif
 
 	if (!editmode)
 		el_set(e, EL_EDITMODE, 0);

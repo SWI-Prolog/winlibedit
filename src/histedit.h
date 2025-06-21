@@ -45,6 +45,9 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#ifdef __MINGW64__
+#include <windows.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,9 +86,13 @@ typedef struct lineinfo {
 /*
  * Initialization, cleanup, and resetting
  */
+#ifdef __MINGW64__
+  EditLine	*el_init_handles(const char *, HANDLE, HANDLE, HANDLE);
+#else
 EditLine	*el_init(const char *, FILE *, FILE *, FILE *);
 EditLine	*el_init_fd(const char *, FILE *, FILE *, FILE *,
-    int, int, int);
+			    int, int, int);
+#endif
 void		 el_end(EditLine *);
 void		 el_reset(EditLine *);
 
