@@ -111,8 +111,8 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	el->el_hErr = GetStdHandle(STD_ERROR_HANDLE);
 #endif
 
-	el->el_infile = fin;
 #ifndef __MINGW64__
+	el->el_infile = fin;
 	el->el_outfile = fout;
 	el->el_errfile = ferr;
 #endif

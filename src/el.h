@@ -119,8 +119,8 @@ struct editline {
 	HANDLE		 *el_hOut;
 	HANDLE		 *el_hErr;
 #endif
-	FILE		 *el_infile;	/* Stdio stuff			*/
 #ifndef __MINGW64__
+	FILE		 *el_infile;	/* Stdio stuff			*/
 	FILE		 *el_outfile;	/* Stdio stuff			*/
 	FILE		 *el_errfile;	/* Stdio stuff			*/
 #endif
