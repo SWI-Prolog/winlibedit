@@ -122,8 +122,8 @@ struct editline {
 	FILE		 *el_infile;	/* Stdio stuff			*/
 #ifndef __MINGW64__
 	FILE		 *el_outfile;	/* Stdio stuff			*/
-#endif
 	FILE		 *el_errfile;	/* Stdio stuff			*/
+#endif
 	int		  el_infd;	/* Input file descriptor	*/
 	int		  el_outfd;	/* Output file descriptor	*/
 	int		  el_errfd;	/* Error file descriptor	*/

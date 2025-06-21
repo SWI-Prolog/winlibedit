@@ -114,8 +114,8 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	el->el_infile = fin;
 #ifndef __MINGW64__
 	el->el_outfile = fout;
-#endif
 	el->el_errfile = ferr;
+#endif
 
 	el->el_infd = fdin;
 	el->el_outfd = fdout;
