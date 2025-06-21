@@ -51,6 +51,9 @@ __RCSID("$NetBSD: read.c,v 1.109 2025/01/03 00:40:08 rillig Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef __MINGW64__
+#include <windows.h>
+#endif
 
 #include "el.h"
 #include "fcns.h"
@@ -147,7 +150,9 @@ el_read_getfn(struct el_read_t *el_read)
 static int
 read__fixio(int fd __attribute__((__unused__)), int e)
 {
-
+#ifdef __MINGW64__
+  return -1;
+#else
 	switch (e) {
 	case -1:		/* Make sure that the code is reachable */
 
@@ -199,6 +204,7 @@ read__fixio(int fd __attribute__((__unused__)), int e)
 	default:
 		return -1;
 	}
+#endif
 }
 
 
@@ -278,6 +284,22 @@ read_getcmd(EditLine *el, el_action_t *cmdnum, wchar_t *ch)
 static int
 read_char(EditLine *el, wchar_t *cp)
 {
+#ifdef __MINGW64__
+  HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+  DWORD done;
+  char buffer[10];
+  BOOL rc = ReadConsoleW(hIn,
+			 buffer,
+			 1,
+			 &done,
+			 NULL);
+  if ( done )
+  { *cp = ((wchar_t*)buffer)[0];
+    return 1;
+  } else
+  { return 0;
+  }
+#else
 	ssize_t num_read;
 	int tried = (el->el_flags & FIXIO) == 0;
 	char cbuf[MB_LEN_MAX];
@@ -288,8 +310,7 @@ read_char(EditLine *el, wchar_t *cp)
 	el->el_signal->sig_no = 0;
 	while ((num_read = read(el->el_infd, cbuf + cbp, (size_t)1)) == -1) {
 		int e = errno;
-#ifndef __MINGW64__
-		switch (el->el_signal->sig_no) {
+#		switch (el->el_signal->sig_no) {
 		case SIGCONT:
 			el_wset(el, EL_REFRESH);
 			/*FALLTHROUGH*/
@@ -299,7 +320,6 @@ read_char(EditLine *el, wchar_t *cp)
 		default:
 			break;
 		}
-#endif
 		if (!tried && read__fixio(el->el_infd, e) == 0) {
 			errno = save_errno;
 			tried = 1;
@@ -316,6 +336,7 @@ read_char(EditLine *el, wchar_t *cp)
 		return 0;
 	}
 
+	fprintf(stderr, "Byte %d\n", cbuf[cbp]);
 	for (;;) {
 		mbstate_t mbs;
 
@@ -348,11 +369,13 @@ read_char(EditLine *el, wchar_t *cp)
 		default:
 			/* Valid character, process it. */
 #ifdef __MINGW64__
+			fprintf(stderr, "Got %d\n", *cp);
 			if ( *cp == '\r' ) *cp = '\n';
 #endif
 			return 1;
 		}
 	}
+#endif/*__MINGW64__*/
 }
 
 /* read_pop():
@@ -496,7 +519,7 @@ el_wgets(EditLine *el, int *nread)
 		return noedit_wgets(el, nread);
 	}
 
-#ifdef FIONREAD
+#if defined(FIONREAD) && !defined(__MINGW64__)
 	if (el->el_tty.t_mode == EX_IO && el->el_read->macros.level < 0) {
 		int chrs = 0;
 

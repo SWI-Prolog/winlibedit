@@ -293,7 +293,7 @@ cv_next_word(EditLine *el, wchar_t *p, wchar_t *high, int n,
 		 * vi historically deletes with cw only the word preserving the
 		 * trailing whitespace! This is not what 'w' does..
 		 */
-		if (n || el->el_chared.c_vcmd.action != (DELETE|INSERT))
+		if (n || el->el_chared.c_vcmd.action != (EL_DELETE|INSERT))
 			while ((p < high) && iswspace(*p))
 				p++;
 	}

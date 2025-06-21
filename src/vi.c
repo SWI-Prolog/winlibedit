@@ -293,7 +293,7 @@ vi_change_meta(EditLine *el, wint_t c __attribute__((__unused__)))
          * Delete with insert == change: first we delete and then we leave in
          * insert mode.
          */
-	return cv_action(el, DELETE | INSERT);
+	return cv_action(el, EL_DELETE | INSERT);
 }
 
 
@@ -464,7 +464,7 @@ libedit_private el_action_t
 vi_delete_meta(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
-	return cv_action(el, DELETE);
+	return cv_action(el, EL_DELETE);
 }
 
 

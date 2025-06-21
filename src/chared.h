@@ -113,7 +113,7 @@ typedef struct el_chared_t {
 #define	isglob(a)	(strchr("*[]?", (a)) != NULL)
 
 #define	NOP		0x00
-#define	DELETE		0x01
+#define	EL_DELETE		0x01
 #define	INSERT		0x02
 #define	YANK		0x04
 
