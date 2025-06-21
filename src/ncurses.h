@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 int tcenablecolor(HANDLE h);
+int isconsole(HANDLE hOut);
 
 // Used by termcap API
 int tgetent(char *bp, const char *name);

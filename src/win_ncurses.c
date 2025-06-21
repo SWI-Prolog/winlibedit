@@ -15,6 +15,12 @@ tcenablecolor(HANDLE hOut)
   SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
 
+int
+isconsole(HANDLE hOut)
+{ CONSOLE_SCREEN_BUFFER_INFO info;
+  return !!GetConsoleScreenBufferInfo(hOut, &info);
+}
+
 /* tcgetattr / tcsetattr: minimal stubs enabling raw input mode */
 int
 tcgetattr(HANDLE fd, struct termios *t)

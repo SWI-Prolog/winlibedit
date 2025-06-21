@@ -50,6 +50,7 @@ __RCSID("$NetBSD: tty.c,v 1.70 2021/07/14 07:47:23 christos Exp $");
 #include <string.h>
 #include <strings.h>	/* for ffs */
 #include <unistd.h>	/* for isatty */
+#include <ncurses.h>
 
 #include "el.h"
 #include "fcns.h"
@@ -513,7 +514,11 @@ tty_setup(EditLine *el)
 	if (el->el_tty.t_initialized)
 		return -1;
 
+#ifdef __MINGW64__
+	if (!isconsole(el->el_hOut)) {
+#else
 	if (!isatty(el->el_outfd)) {
+#endif
 #ifdef DEBUG_TTY
 		(void) el_printf(el, EL_PTR_ERR, "%s: isatty: %s\n", __func__,
 		    strerror(errno));
