@@ -135,3 +135,17 @@ cfsetospeed(struct termios *t, speed_t speed)
 { t->c_ospeed = speed;
   return 0;
 }
+
+/* normally defined in <string.h>, but not on Windows
+*/
+
+int
+ffs(int i)
+{ int bit = 1;
+  while (i)
+  { if (i & 1) return bit;
+    i >>= 1;
+    ++bit;
+  }
+  return 0;
+}
