@@ -347,6 +347,9 @@ read_char(EditLine *el, wchar_t *cp)
 			goto again;
 		default:
 			/* Valid character, process it. */
+#ifdef __MINGW64__
+			if ( *cp == '\r' ) *cp = '\n';
+#endif
 			return 1;
 		}
 	}
