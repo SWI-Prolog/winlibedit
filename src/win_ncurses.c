@@ -9,19 +9,16 @@
 #include <termios.h>
 
 int
-tcenablecolor(int fd)
-{ if (fd != STDIN_FILENO) return -1;
-  DWORD dwMode = 0;
-  HANDLE hOut = GetStdHandle(STD_INPUT_HANDLE);
+tcenablecolor(HANDLE hOut)
+{ DWORD dwMode = 0;
   GetConsoleMode(hOut, &dwMode);
   SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
 
 /* tcgetattr / tcsetattr: minimal stubs enabling raw input mode */
 int
-tcgetattr(int fd, struct termios *t)
-{ (void)fd;
-  memset(t, 0, sizeof(*t));
+tcgetattr(HANDLE fd, struct termios *t)
+{ memset(t, 0, sizeof(*t));
   t->c_lflag = ICANON | ECHO;
   t->c_iflag = ICRNL | IXON;
   t->c_oflag = OPOST | ONLCR;
@@ -32,10 +29,8 @@ tcgetattr(int fd, struct termios *t)
 }
 
 int
-tcsetattr(int fd, int optional_actions, const struct termios *t)
-{ if (fd != STDIN_FILENO) return -1;
-  DWORD mode = 0;
-  HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+tcsetattr(HANDLE h, int optional_actions, const struct termios *t)
+{ DWORD mode = 0;
   if (!GetConsoleMode(h, &mode)) return -1;
   if ((t->c_lflag & (ICANON | ECHO)) == 0)
   { mode |= ENABLE_VIRTUAL_TERMINAL_INPUT;

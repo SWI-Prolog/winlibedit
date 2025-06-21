@@ -281,7 +281,7 @@ libedit_private int
 terminal_init(EditLine *el)
 {
 #if __MINGW64__
-	tcenablecolor(el->el_infd);
+	tcenablecolor(el->el_hOut);
 #endif
 	el->el_terminal.t_buf = el_calloc(TC_BUFSIZE,
 	    sizeof(*el->el_terminal.t_buf));

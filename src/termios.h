@@ -2,6 +2,7 @@
 
 #ifndef _MINI_TERMIOS_H
 #define _MINI_TERMIOS_H
+#include <windows.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,8 +66,8 @@ struct termios {
 #define TCSAFLUSH 2
 
 // Function declarations
-int tcgetattr(int fd, struct termios *t);
-int tcsetattr(int fd, int optional_actions, const struct termios *t);
+int tcgetattr(HANDLE fd, struct termios *t);
+int tcsetattr(HANDLE fd, int optional_actions, const struct termios *t);
 speed_t cfgetispeed(const struct termios *t);
 speed_t cfgetospeed(const struct termios *t);
 int cfsetispeed(struct termios *t, speed_t speed);

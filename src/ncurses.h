@@ -2,12 +2,13 @@
 
 #ifndef _MINI_NCURSES_H
 #define _MINI_NCURSES_H
+#include <windows.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int tcenablecolor(int fd);
+int tcenablecolor(HANDLE h);
 
 // Used by termcap API
 int tgetent(char *bp, const char *name);
@@ -19,8 +20,8 @@ int tputs(const char *str, int affcnt, int (*putc)(int));
 
 // Terminal attribute structure and functions
 #include <termios.h>
-int tcgetattr(int fd, struct termios *t);
-int tcsetattr(int fd, int optional_actions, const struct termios *t);
+int tcgetattr(HANDLE fd, struct termios *t);
+int tcsetattr(HANDLE fd, int optional_actions, const struct termios *t);
 
 // Compatibility
 #define OK 0

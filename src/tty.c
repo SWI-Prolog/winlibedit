@@ -473,10 +473,14 @@ static void	tty_setup_flags(EditLine *, struct termios *, int);
 static int
 tty_getty(EditLine *el, struct termios *t)
 {
+#ifdef __MINGW64__
+	return tcgetattr(el->el_hIn, t);
+#else
 	int rv;
 	while ((rv = tcgetattr(el->el_infd, t)) == -1 && errno == EINTR)
 		continue;
 	return rv;
+#endif
 }
 
 /* tty_setty():
@@ -485,10 +489,14 @@ tty_getty(EditLine *el, struct termios *t)
 static int
 tty_setty(EditLine *el, int action, const struct termios *t)
 {
+#ifdef __MINGW64__
+	return tcsetattr(el->el_hIn, action, t);
+#else
 	int rv;
 	while ((rv = tcsetattr(el->el_infd, action, t)) == -1 && errno == EINTR)
 		continue;
 	return rv;
+#endif
 }
 
 /* tty_setup():
@@ -535,8 +543,8 @@ tty_setup(EditLine *el)
 		if (tty__cooked_mode(&el->el_tty.t_ts)) {
 			tty__getchar(&el->el_tty.t_ts, el->el_tty.t_c[TS_IO]);
 			/*
-	                 * Don't affect CMIN and CTIME for the editor mode
-	                 */
+			 * Don't affect CMIN and CTIME for the editor mode
+			 */
 			for (rst = 0; rst < C_NCC - 2; rst++)
 				if (el->el_tty.t_c[TS_IO][rst] !=
 				      el->el_tty.t_vdisable

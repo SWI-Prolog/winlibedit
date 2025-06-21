@@ -333,7 +333,11 @@ rl_initialize(void)
 	/*
 	 * See if we don't really want to run the editor
 	 */
+#ifdef __MINGW64__
+	if (tcgetattr(GetStdHandle(STD_INPUT_HANDLE), &t) != -1 && (t.c_lflag & ECHO) == 0)
+#else
 	if (tcgetattr(fileno(rl_instream), &t) != -1 && (t.c_lflag & ECHO) == 0)
+#endif
 		editmode = 0;
 
 	e = el_init_internal(rl_readline_name, rl_instream, rl_outstream,
@@ -2288,6 +2292,11 @@ _rl_event_read_char(EditLine *el, wchar_t *wc)
 		num_read = read(el->el_infd, &ch, 1);
 		if (fcntl(el->el_infd, F_SETFL, n))
 			return -1;
+#elif __MINGW64__
+		DWORD done;
+		ReadConsoleA(el->el_hIn, &ch, 1, &done, NULL);
+		num_read = done;
+		return -1;
 #else
 		/* not non-blocking, but what you gonna do? */
 		num_read = read(el->el_infd, &ch, 1);

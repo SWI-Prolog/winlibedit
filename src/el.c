@@ -115,9 +115,9 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	el->el_infile = fin;
 	el->el_outfile = fout;
 	el->el_errfile = ferr;
-#endif
 
 	el->el_infd = fdin;
+#endif
 	el->el_outfd = fdout;
 	el->el_errfd = fderr;
 
