@@ -90,7 +90,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = tc1$(EXEEXT) fileman$(EXEEXT) wtc1$(EXEEXT)
+noinst_PROGRAMS = tc1$(EXEEXT) fileman$(EXEEXT)
 subdir = examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -117,10 +117,6 @@ am_tc1_OBJECTS = tc1.$(OBJEXT)
 tc1_OBJECTS = $(am_tc1_OBJECTS)
 tc1_LDADD = $(LDADD)
 tc1_DEPENDENCIES = $(top_builddir)/src/libedit.la
-am_wtc1_OBJECTS = wtc1.$(OBJEXT)
-wtc1_OBJECTS = $(am_wtc1_OBJECTS)
-wtc1_LDADD = $(LDADD)
-wtc1_DEPENDENCIES = $(top_builddir)/src/libedit.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -136,8 +132,7 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/fileman.Po ./$(DEPDIR)/tc1.Po \
-	./$(DEPDIR)/wtc1.Po
+am__depfiles_remade = ./$(DEPDIR)/fileman.Po ./$(DEPDIR)/tc1.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -157,8 +152,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(fileman_SOURCES) $(tc1_SOURCES) $(wtc1_SOURCES)
-DIST_SOURCES = $(fileman_SOURCES) $(tc1_SOURCES) $(wtc1_SOURCES)
+SOURCES = $(fileman_SOURCES) $(tc1_SOURCES)
+DIST_SOURCES = $(fileman_SOURCES) $(tc1_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -311,7 +306,9 @@ LDADD = $(top_builddir)/src/libedit.la
 AM_CFLAGS = -I$(top_srcdir)/src
 tc1_SOURCES = tc1.c
 fileman_SOURCES = fileman.c
-wtc1_SOURCES = wtc1.c
+
+#noinst_PROGRAMS += wtc1
+#wtc1_SOURCES     = wtc1.c
 EXTRA_DIST = fuzz1.c
 all: all-am
 
@@ -359,10 +356,6 @@ tc1$(EXEEXT): $(tc1_OBJECTS) $(tc1_DEPENDENCIES) $(EXTRA_tc1_DEPENDENCIES)
 	@rm -f tc1$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(tc1_OBJECTS) $(tc1_LDADD) $(LIBS)
 
-wtc1$(EXEEXT): $(wtc1_OBJECTS) $(wtc1_DEPENDENCIES) $(EXTRA_wtc1_DEPENDENCIES) 
-	@rm -f wtc1$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(wtc1_OBJECTS) $(wtc1_LDADD) $(LIBS)
-
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -371,7 +364,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fileman.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc1.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wtc1.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -533,7 +525,6 @@ clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/fileman.Po
 	-rm -f ./$(DEPDIR)/tc1.Po
-	-rm -f ./$(DEPDIR)/wtc1.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -581,7 +572,6 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/fileman.Po
 	-rm -f ./$(DEPDIR)/tc1.Po
-	-rm -f ./$(DEPDIR)/wtc1.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
