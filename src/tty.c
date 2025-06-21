@@ -507,14 +507,14 @@ tty_setup(EditLine *el)
 
 	if (!isatty(el->el_outfd)) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: isatty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: isatty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
 	}
 	if (tty_getty(el, &el->el_tty.t_or) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_getty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_getty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -553,7 +553,7 @@ tty_setup(EditLine *el)
 		tty__setchar(&el->el_tty.t_ex, el->el_tty.t_c[EX_IO]);
 		if (tty_setty(el, TCSADRAIN, &el->el_tty.t_ex) == -1) {
 #ifdef DEBUG_TTY
-			(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n",
+			(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n",
 			    __func__, strerror(errno));
 #endif /* DEBUG_TTY */
 			return -1;
@@ -597,7 +597,7 @@ tty_end(EditLine *el, int how)
 	if (tty_setty(el, how, &el->el_tty.t_or) == -1)
 	{
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: tty_setty: %s\n", __func__, strerror(errno));
 #endif /* DEBUG_TTY */
 	}
@@ -1004,7 +1004,7 @@ tty_rawmode(EditLine *el)
 
 	if (tty_getty(el, &el->el_tty.t_ts) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_getty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_getty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -1064,7 +1064,7 @@ tty_rawmode(EditLine *el)
 	}
 	if (tty_setty(el, TCSADRAIN, &el->el_tty.t_ed) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -1089,7 +1089,7 @@ tty_cookedmode(EditLine *el)
 
 	if (tty_setty(el, TCSADRAIN, &el->el_tty.t_ex) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -1114,7 +1114,7 @@ tty_quotemode(EditLine *el)
 
 	if (tty_setty(el, TCSADRAIN, &el->el_tty.t_qu) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -1135,7 +1135,7 @@ tty_noquotemode(EditLine *el)
 		return 0;
 	if (tty_setty(el, TCSADRAIN, &el->el_tty.t_ed) == -1) {
 #ifdef DEBUG_TTY
-		(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n", __func__,
+		(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n", __func__,
 		    strerror(errno));
 #endif /* DEBUG_TTY */
 		return -1;
@@ -1187,7 +1187,7 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 			z = QU_IO;
 			break;
 		default:
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "%s: Unknown switch `%lc'.\n",
 			    name, (wint_t)argv[0][1]);
 			return -1;
@@ -1260,7 +1260,7 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 				break;
 
 		if (!m->m_name) {
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "%s: Invalid argument `%ls'.\n", name, d);
 			return -1;
 		}
@@ -1295,7 +1295,7 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 	if (el->el_tty.t_mode == z) {
 		if (tty_setty(el, TCSADRAIN, tios) == -1) {
 #ifdef DEBUG_TTY
-			(void) fprintf(el->el_errfile, "%s: tty_setty: %s\n",
+			(void) el_printf(el, EL_PTR_ERR, "%s: tty_setty: %s\n",
 			    __func__, strerror(errno));
 #endif /* DEBUG_TTY */
 			return -1;
@@ -1321,12 +1321,12 @@ tty_printchar(EditLine *el, unsigned char *s)
 			if (m->m_type == MD_CHAR && C_SH(i) == m->m_value)
 				break;
 		if (m->m_name)
-			(void) fprintf(el->el_errfile, "%s ^%c ",
+			(void) el_printf(el, EL_PTR_ERR, "%s ^%c ",
 			    m->m_name, s[i] + 'A' - 1);
 		if (i % 5 == 0)
-			(void) fprintf(el->el_errfile, "\n");
+			(void) el_printf(el, EL_PTR_ERR, "\n");
 	}
-	(void) fprintf(el->el_errfile, "\n");
+	(void) el_printf(el, EL_PTR_ERR, "\n");
 }
 #endif /* notyet */
 

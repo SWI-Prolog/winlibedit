@@ -148,7 +148,7 @@ ed_delete_next_char(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 #ifdef DEBUG_EDIT
 #define	EL	el->el_line
-	(void) fprintf(el->el_errfile,
+	(void) el_printf(el, EL_PTR_ERR,
 	    "\nD(b: %p(%ls)  c: %p(%ls) last: %p(%ls) limit: %p(%ls)\n",
 	    EL.buffer, EL.buffer, EL.cursor, EL.cursor, EL.lastchar,
 	    EL.lastchar, EL.limit, EL.limit);
@@ -633,7 +633,7 @@ ed_search_prev_history(EditLine *el, wint_t c __attribute__((__unused__)))
 	*el->el_line.lastchar = '\0';	/* just in case */
 	if (el->el_history.eventno < 0) {
 #ifdef DEBUG_EDIT
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "e_prev_search_hist(): eventno < 0;\n");
 #endif
 		el->el_history.eventno = 0;
@@ -659,7 +659,7 @@ ed_search_prev_history(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	while (hp != NULL) {
 #ifdef SDEBUG
-		(void) fprintf(el->el_errfile, "Comparing with \"%ls\"\n", hp);
+		(void) el_printf(el, EL_PTR_ERR, "Comparing with \"%ls\"\n", hp);
 #endif
 		if ((wcsncmp(hp, el->el_line.buffer, (size_t)
 			    (el->el_line.lastchar - el->el_line.buffer)) ||
@@ -674,7 +674,7 @@ ed_search_prev_history(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	if (!found) {
 #ifdef SDEBUG
-		(void) fprintf(el->el_errfile, "not found\n");
+		(void) el_printf(el, EL_PTR_ERR, "not found\n");
 #endif
 		return CC_ERROR;
 	}
@@ -714,7 +714,7 @@ ed_search_next_history(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	for (h = 1; h < el->el_history.eventno && hp; h++) {
 #ifdef SDEBUG
-		(void) fprintf(el->el_errfile, "Comparing with \"%ls\"\n", hp);
+		(void) el_printf(el, EL_PTR_ERR, "Comparing with \"%ls\"\n", hp);
 #endif
 		if ((wcsncmp(hp, el->el_line.buffer, (size_t)
 			    (el->el_line.lastchar - el->el_line.buffer)) ||
@@ -727,7 +727,7 @@ ed_search_next_history(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (!found) {		/* is it the current history number? */
 		if (!c_hmatch(el, el->el_history.buf)) {
 #ifdef SDEBUG
-			(void) fprintf(el->el_errfile, "not found\n");
+			(void) el_printf(el, EL_PTR_ERR, "not found\n");
 #endif
 			return CC_ERROR;
 		}

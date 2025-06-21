@@ -157,7 +157,7 @@ libedit_private EditLine *el_init_internal(const char *, FILE *, FILE *,
 
 #ifdef DEBUG
 #define	EL_ABORT(a)	do { \
-				fprintf(el->el_errfile, "%s, %d: ", \
+				el_printf(el, EL_PTR_ERR, "%s, %d: ", \
 					 __FILE__, __LINE__); \
 				fprintf a; \
 				abort(); \

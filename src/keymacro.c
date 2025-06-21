@@ -195,12 +195,12 @@ keymacro_add(EditLine *el, const wchar_t *key, keymacro_value_t *val,
 {
 
 	if (key[0] == '\0') {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "keymacro_add: Null extended-key not allowed.\n");
 		return;
 	}
 	if (ntype == XK_CMD && val->cmd == ED_SEQUENCE_LEAD_IN) {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "keymacro_add: sequence-lead-in command not allowed\n");
 		return;
 	}
@@ -241,7 +241,7 @@ keymacro_delete(EditLine *el, const wchar_t *key)
 {
 
 	if (key[0] == '\0') {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "keymacro_delete: Null extended-key not allowed.\n");
 		return -1;
 	}
@@ -268,7 +268,7 @@ keymacro_print(EditLine *el, const wchar_t *key)
 	el->el_keymacro.buf[0] = '"';
 	if (node_lookup(el, key, el->el_keymacro.map, (size_t)1) <= -1)
 		/* key is not bound */
-		(void) fprintf(el->el_errfile, "Unbound extended key \"%ls"
+		(void) el_printf(el, EL_PTR_ERR, "Unbound extended key \"%ls"
 		    "\"\n", key);
 	return;
 }
@@ -541,15 +541,15 @@ node_enum(EditLine *el, keymacro_node_t *ptr, size_t cnt)
 	if (cnt >= KEY_BUFSIZ - 5) {	/* buffer too small */
 		el->el_keymacro.buf[++cnt] = '"';
 		el->el_keymacro.buf[++cnt] = '\0';
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "Some extended keys too long for internal print buffer");
-		(void) fprintf(el->el_errfile, " \"%ls...\"\n",
+		(void) el_printf(el, EL_PTR_ERR, " \"%ls...\"\n",
 		    el->el_keymacro.buf);
 		return 0;
 	}
 	if (ptr == NULL) {
 #ifdef DEBUG_EDIT
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "node_enum: BUG!! Null ptr passed\n!");
 #endif
 		return -1;

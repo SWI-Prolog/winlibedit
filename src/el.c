@@ -689,7 +689,7 @@ el_editmode(EditLine *el, int argc, const wchar_t **argv)
 		el->el_flags |= EDIT_DISABLED;
 	}
 	else {
-		(void) fprintf(el->el_errfile, "edit: Bad value `%ls'.\n",
+		(void) el_printf(el, EL_PTR_ERR, "edit: Bad value `%ls'.\n",
 		    how);
 		return -1;
 	}

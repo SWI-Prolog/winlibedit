@@ -169,7 +169,7 @@ libedit_private int
 c_hmatch(EditLine *el, const wchar_t *str)
 {
 #ifdef SDEBUG
-	(void) fprintf(el->el_errfile, "match `%ls' with `%ls'\n",
+	(void) el_printf(el, EL_PTR_ERR, "match `%ls' with `%ls'\n",
 	    el->el_search.patbuf, str);
 #endif /* SDEBUG */
 
@@ -194,12 +194,12 @@ c_setpat(EditLine *el)
 		el->el_search.patbuf[el->el_search.patlen] = '\0';
 	}
 #ifdef SDEBUG
-	(void) fprintf(el->el_errfile, "\neventno = %d\n",
+	(void) el_printf(el, EL_PTR_ERR, "\neventno = %d\n",
 	    el->el_history.eventno);
-	(void) fprintf(el->el_errfile, "patlen = %ld\n", el->el_search.patlen);
-	(void) fprintf(el->el_errfile, "patbuf = \"%ls\"\n",
+	(void) el_printf(el, EL_PTR_ERR, "patlen = %ld\n", el->el_search.patlen);
+	(void) el_printf(el, EL_PTR_ERR, "patbuf = \"%ls\"\n",
 	    el->el_search.patbuf);
-	(void) fprintf(el->el_errfile, "cursor %ld lastchar %ld\n",
+	(void) el_printf(el, EL_PTR_ERR, "cursor %ld lastchar %ld\n",
 	    EL_CURSOR(el) - el->el_line.buffer,
 	    el->el_line.lastchar - el->el_line.buffer);
 #endif
@@ -582,7 +582,7 @@ cv_repeat_srch(EditLine *el, wint_t c)
 
 #ifdef SDEBUG
 	static ct_buffer_t conv;
-	(void) fprintf(el->el_errfile, "dir %d patlen %ld patbuf %s\n",
+	(void) el_printf(el, EL_PTR_ERR, "dir %d patlen %ld patbuf %s\n",
 	    c, el->el_search.patlen, ct_encode_string(el->el_search.patbuf, &conv));
 #endif
 

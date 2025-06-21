@@ -260,17 +260,17 @@ terminal_setflags(EditLine *el)
 
 #ifdef DEBUG_SCREEN
 	if (!EL_CAN_UP) {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "WARNING: Your terminal cannot move up.\n");
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "Editing may be odd for long lines.\n");
 	}
 	if (!EL_CAN_CEOL)
-		(void) fprintf(el->el_errfile, "no clear EOL capability.\n");
+		(void) el_printf(el, EL_PTR_ERR, "no clear EOL capability.\n");
 	if (!EL_CAN_DELETE)
-		(void) fprintf(el->el_errfile, "no delete char capability.\n");
+		(void) el_printf(el, EL_PTR_ERR, "no delete char capability.\n");
 	if (!EL_CAN_INSERT)
-		(void) fprintf(el->el_errfile, "no insert char capability.\n");
+		(void) el_printf(el, EL_PTR_ERR, "no insert char capability.\n");
 #endif /* DEBUG_SCREEN */
 }
 
@@ -388,7 +388,7 @@ terminal_alloc(EditLine *el, const struct termcapstr *t, const char *cap)
 	memcpy(el->el_terminal.t_buf, termbuf, TC_BUFSIZE);
 	el->el_terminal.t_loc = tlen;
 	if (el->el_terminal.t_loc + 3 >= TC_BUFSIZE) {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "Out of termcap string space.\n");
 		return;
 	}
@@ -502,7 +502,7 @@ terminal_move_to_line(EditLine *el, int where)
 
 	if (where >= el->el_terminal.t_size.v) {
 #ifdef DEBUG_SCREEN
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: where is ridiculous: %d\r\n", __func__, where);
 #endif /* DEBUG_SCREEN */
 		return;
@@ -543,7 +543,7 @@ mc_again:
 
 	if (where > el->el_terminal.t_size.h) {
 #ifdef DEBUG_SCREEN
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: where is ridiculous: %d\r\n", __func__, where);
 #endif /* DEBUG_SCREEN */
 		return;
@@ -636,7 +636,7 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 
 	if (n > (size_t)el->el_terminal.t_size.h) {
 #ifdef DEBUG_SCREEN
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: n is ridiculous: %zu\r\n", __func__, n);
 #endif /* DEBUG_SCREEN */
 		return;
@@ -685,13 +685,13 @@ terminal_deletechars(EditLine *el, int num)
 
 	if (!EL_CAN_DELETE) {
 #ifdef DEBUG_EDIT
-		(void) fprintf(el->el_errfile, "   ERROR: cannot delete   \n");
+		(void) el_printf(el, EL_PTR_ERR, "   ERROR: cannot delete   \n");
 #endif /* DEBUG_EDIT */
 		return;
 	}
 	if (num > el->el_terminal.t_size.h) {
 #ifdef DEBUG_SCREEN
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: num is ridiculous: %d\r\n", __func__, num);
 #endif /* DEBUG_SCREEN */
 		return;
@@ -726,13 +726,13 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 		return;
 	if (!EL_CAN_INSERT) {
 #ifdef DEBUG_EDIT
-		(void) fprintf(el->el_errfile, "   ERROR: cannot insert   \n");
+		(void) el_printf(el, EL_PTR_ERR, "   ERROR: cannot insert   \n");
 #endif /* DEBUG_EDIT */
 		return;
 	}
 	if (num > el->el_terminal.t_size.h) {
 #ifdef DEBUG_SCREEN
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: num is ridiculous: %d\r\n", __func__, num);
 #endif /* DEBUG_SCREEN */
 		return;
@@ -870,12 +870,12 @@ terminal_set(EditLine *el, const char *term)
 
 	if (i <= 0) {
 		if (i == -1)
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "Cannot read termcap database;\n");
 		else if (i == 0)
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "No entry for terminal type \"%s\";\n", term);
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "using dumb terminal settings.\n");
 		Val(T_co) = 80;	/* do a dumb terminal */
 		Val(T_pt) = Val(T_km) = Val(T_li) = 0;
@@ -1348,7 +1348,7 @@ terminal_settc(EditLine *el, int argc __attribute__((__unused__)),
 			break;
 
 	if (tv->name == NULL) {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%ls: Bad capability `%s'.\n", argv[0], what);
 		return -1;
 	}
@@ -1363,7 +1363,7 @@ terminal_settc(EditLine *el, int argc __attribute__((__unused__)),
 		else if (strcmp(how, "no") == 0)
 			el->el_terminal.t_val[tv - tval] = 0;
 		else {
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "%ls: Bad value `%s'.\n", argv[0], how);
 			return -1;
 		}
@@ -1376,7 +1376,7 @@ terminal_settc(EditLine *el, int argc __attribute__((__unused__)),
 	 */
 	i = strtol(how, &ep, 10);
 	if (*ep != '\0') {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%ls: Bad value `%s'.\n", argv[0], how);
 		return -1;
 	}
@@ -1530,7 +1530,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 	}
 	if (!scap || scap[0] == '\0') {
 		if (!silent)
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "echotc: Termcap parameter `%ls' not found.\n",
 			    *argv);
 		return -1;
@@ -1561,7 +1561,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 				 * hpux has lot's of them...
 				 */
 				if (verbose)
-					(void) fprintf(el->el_errfile,
+					(void) el_printf(el, EL_PTR_ERR,
 				"echotc: Warning: unknown termcap %% `%c'.\n",
 					    *cap);
 				/* This is bad, but I won't complain */
@@ -1573,7 +1573,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		argv++;
 		if (*argv && *argv[0]) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Extra argument `%ls'.\n",
 				    *argv);
 			return -1;
@@ -1584,7 +1584,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		argv++;
 		if (!*argv || *argv[0] == '\0') {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Missing argument.\n");
 			return -1;
 		}
@@ -1592,7 +1592,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		i = wcstol(*argv, &ep, 10);
 		if (*ep != '\0' || i < 0) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Bad value `%ls' for rows.\n",
 				    *argv);
 			return -1;
@@ -1601,7 +1601,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		argv++;
 		if (*argv && *argv[0]) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Extra argument `%ls"
 				    "'.\n", *argv);
 			return -1;
@@ -1611,7 +1611,7 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 	default:
 		/* This is wrong, but I will ignore it... */
 		if (verbose)
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			 "echotc: Warning: Too many required arguments (%d).\n",
 			    arg_need);
 		/* FALLTHROUGH */
@@ -1619,14 +1619,14 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		argv++;
 		if (!*argv || *argv[0] == '\0') {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Missing argument.\n");
 			return -1;
 		}
 		i = wcstol(*argv, &ep, 10);
 		if (*ep != '\0' || i < 0) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Bad value `%ls' for cols.\n",
 				    *argv);
 			return -1;
@@ -1635,14 +1635,14 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		argv++;
 		if (!*argv || *argv[0] == '\0') {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Missing argument.\n");
 			return -1;
 		}
 		i = wcstol(*argv, &ep, 10);
 		if (*ep != '\0' || i < 0) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Bad value `%ls' for rows.\n",
 				    *argv);
 			return -1;
@@ -1650,14 +1650,14 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 		arg_rows = (int) i;
 		if (*ep != '\0') {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Bad value `%ls'.\n", *argv);
 			return -1;
 		}
 		argv++;
 		if (*argv && *argv[0]) {
 			if (!silent)
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "echotc: Warning: Extra argument `%ls"
 				    "'.\n", *argv);
 			return -1;

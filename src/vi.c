@@ -106,7 +106,7 @@ cv_paste(EditLine *el, wint_t c)
 	if (k->buf == NULL || len == 0)
 		return CC_ERROR;
 #ifdef DEBUG_PASTE
-	(void) fprintf(el->el_errfile, "Paste: \"%.*ls\"\n", (int)len,
+	(void) el_printf(el, EL_PTR_ERR, "Paste: \"%.*ls\"\n", (int)len,
 	    k->buf);
 #endif
 

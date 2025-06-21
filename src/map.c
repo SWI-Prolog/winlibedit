@@ -1340,7 +1340,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 					    bp->name, bp->description);
 				return 0;
 			default:
-				(void) fprintf(el->el_errfile,
+				(void) el_printf(el, EL_PTR_ERR,
 				    "%ls: Invalid switch `%lc'.\n",
 				    argv[0], (wint_t)p[1]);
 			}
@@ -1354,7 +1354,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 	if (key)
 		in = argv[argc++];
 	else if ((in = parse__string(inbuf, argv[argc++])) == NULL) {
-		(void) fprintf(el->el_errfile,
+		(void) el_printf(el, EL_PTR_ERR,
 		    "%ls: Invalid \\ or ^ in instring.\n",
 		    argv[0]);
 		return -1;
@@ -1389,7 +1389,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 	switch (ntype) {
 	case XK_STR:
 		if ((out = parse__string(outbuf, argv[argc])) == NULL) {
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "%ls: Invalid \\ or ^ in outstring.\n", argv[0]);
 			return -1;
 		}
@@ -1402,7 +1402,7 @@ map_bind(EditLine *el, int argc, const wchar_t **argv)
 
 	case XK_CMD:
 		if ((cmd = parse_cmd(el, argv[argc])) == -1) {
-			(void) fprintf(el->el_errfile,
+			(void) el_printf(el, EL_PTR_ERR,
 			    "%ls: Invalid command `%ls'.\n",
 			    argv[0], argv[argc]);
 			return -1;
