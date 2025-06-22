@@ -105,6 +105,7 @@ tgoto(const char *cap, int col, int row)
   return strdup(buf);
 }
 
+#if 0					/* not used anymore */
 /* tputs: output count times, with padding char ignored */
 int
 tputs(const char *s, int affcnt, int (*putc_func)(int))
@@ -114,6 +115,7 @@ tputs(const char *s, int affcnt, int (*putc_func)(int))
   }
   return OK;
 }
+#endif
 
 speed_t
 cfgetispeed(const struct termios *t)

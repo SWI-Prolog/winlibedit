@@ -17,7 +17,8 @@ int tgetflag(const char *id);
 int tgetnum(const char *id);
 char *tgetstr(const char *id, char **area);
 char *tgoto(const char *cap, int col, int row);
-int tputs(const char *str, int affcnt, int (*putc)(int));
+//not used anymore
+//int tputs(const char *str, int affcnt, int (*putc)(int));
 
 // Terminal attribute structure and functions
 #include <termios.h>
