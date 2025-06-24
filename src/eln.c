@@ -349,6 +349,13 @@ el_get(EditLine *el, int op, ...)
 		break;
 	}
 
+	case EL_GETHANDLE: {          /* int, HANDLE ** */
+		int what = va_arg(ap, int);
+		HANDLE **fpp = va_arg(ap, HANDLE **);
+		ret = el_wget(el, op, what, fpp);
+		break;
+	}
+
 	default:
 		ret = -1;
 		break;
@@ -383,7 +390,7 @@ el_line(EditLine *el)
 		offset += ct_enc_width(*p);
 	info->lastchar = info->buffer + offset;
 
-	if (el->el_chared.c_resizefun)  
+	if (el->el_chared.c_resizefun)
 		(*el->el_chared.c_resizefun)(el, el->el_chared.c_resizearg);
 	el->el_flags &= ~FROM_ELLINE;
 
