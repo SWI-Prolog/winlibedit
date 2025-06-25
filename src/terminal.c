@@ -934,6 +934,13 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 	*cols = Val(T_co);
 	*lins = Val(T_li);
 
+#ifdef __MINGW64__
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	if ( GetConsoleScreenBufferInfo(el->el_hOut, &csbi) )
+	{ *cols = csbi.dwSize.X;
+	  *lins = csbi.dwSize.Y;
+	}
+#else/*__MINGW64__*/
 #ifdef TIOCGWINSZ
 	{
 		struct winsize ws;
@@ -956,6 +963,7 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 		}
 	}
 #endif
+#endif/*__MINGW64__*/
 	return Val(T_co) != *cols || Val(T_li) != *lins;
 }
 
