@@ -92,6 +92,9 @@ tgetstr(const char *id, char **area)
   else if (strcmp(id, "do") == 0) s = "\x1b[B";          // cursor down
   else if (strcmp(id, "le") == 0) s = "\x1b[D";          // cursor left
   else if (strcmp(id, "nd") == 0) s = "\x1b[C";          // cursor right
+  else if (strcmp(id, "cr") == 0) s = "\r";              // carriage return
+  else if (strcmp(id, "ic") == 0) s = "\x1b[@";          // insert character
+  else if (strcmp(id, "dc") == 0) s = "\x1b[P";          // delete character
   else return NULL;
 
   return (char*)s;
