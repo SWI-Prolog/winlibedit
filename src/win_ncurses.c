@@ -97,12 +97,15 @@ tgetstr(const char *id, char **area)
   return (char*)s;
 }
 
-/* tgoto: simple substitute */
+/* tgoto: simple substitute.  This is  not thread-safe, but nor is the
+ * system tgoto.  As we'd be editing  in a single terminal anyway this
+ * is good enough.
+ */
 char *
 tgoto(const char *cap, int col, int row)
-{ char buf[32];
+{ static char buf[32];
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row + 1, col + 1);
-  return strdup(buf);
+  return buf;
 }
 
 #if 0					/* not used anymore */
