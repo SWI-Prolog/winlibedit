@@ -59,6 +59,9 @@
 #define	NO_RESET	0x080
 #define	FIXIO		0x100
 #define	FROM_ELLINE	0x200
+#ifdef __MINGW64__
+#define EPILOG		0x400	/* SWI-Prolog Epilog: I/O on pipes. */
+#endif
 
 typedef unsigned char el_action_t;	/* Index to command array	*/
 

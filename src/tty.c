@@ -491,6 +491,8 @@ static int
 tty_setty(EditLine *el, int action, const struct termios *t)
 {
 #ifdef __MINGW64__
+	if ( el->el_flags & EPILOG )
+		return 0;
 	return tcsetattr(el->el_hIn, action, t);
 #else
 	int rv;

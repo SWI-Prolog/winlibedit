@@ -151,8 +151,10 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 
 #if __MINGW64__
 EditLine *
-el_init_handles(const char *prog, HANDLE fin, HANDLE fout, HANDLE ferr)
-{ return el_init_internal(prog, fin, fout, ferr, 0);
+el_init_handles(const char *prog,
+		HANDLE fin, HANDLE fout, HANDLE ferr,
+		int flags)
+{ return el_init_internal(prog, fin, fout, ferr, flags);
 }
 
 #else

@@ -83,11 +83,15 @@ typedef struct lineinfo {
 #define	CC_REDISPLAY	8
 #define	CC_REFRESH_BEEP	9
 
+
+
 /*
  * Initialization, cleanup, and resetting
  */
 #ifdef __MINGW64__
-  EditLine	*el_init_handles(const char *, HANDLE, HANDLE, HANDLE);
+#define EPILOG		0x400	/* SWI-Prolog Epilog: I/O on pipes. */
+EditLine	*el_init_handles(const char *, HANDLE, HANDLE, HANDLE,
+				 int flags);
 #else
 EditLine	*el_init(const char *, FILE *, FILE *, FILE *);
 EditLine	*el_init_fd(const char *, FILE *, FILE *, FILE *,
