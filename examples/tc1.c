@@ -163,7 +163,7 @@ main(int argc __attribute__((__unused__)), char *argv[])
 	el = el_init_handles(*argv,
 			     GetStdHandle(STD_INPUT_HANDLE),
 			     GetStdHandle(STD_OUTPUT_HANDLE),
-			     GetStdHandle(STD_ERROR_HANDLE));
+			     GetStdHandle(STD_ERROR_HANDLE), 0);
 #else
 	el = el_init(*argv, stdin, stdout, stderr);
 #endif
