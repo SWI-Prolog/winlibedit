@@ -95,6 +95,8 @@ tgetstr(const char *id, char **area)
   else if (strcmp(id, "cr") == 0) s = "\r";              // carriage return
   else if (strcmp(id, "ic") == 0) s = "\x1b[@";          // insert character
   else if (strcmp(id, "dc") == 0) s = "\x1b[P";          // delete character
+  else if (strcmp(id, "ch") == 0) s = "\x1b[%i%p1%dG";   // Set col
+  else if (strcmp(id, "cm") == 0) s = "\x1b[%i%p1%d;%p2%dH";   // Set col&row
   else return NULL;
 
   return (char*)s;
@@ -106,10 +108,46 @@ tgetstr(const char *id, char **area)
  */
 char *
 tgoto(const char *cap, int col, int row)
-{ static char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row + 1, col + 1);
+{ static char buf[128];
+  char *p = buf;
+  int p1 = col, p2 = row;
+  int incr = 0;
+
+  const char *c = cap;
+  while (*c && (p - buf) < (int)sizeof(buf) - 16)
+  { if (*c == '%')
+    { c++;
+      if (*c == 'i')		// increment parameters by 1
+      { p1++; p2++;
+	c++;
+      } else if (*c == 'p')	// parameter reference
+      { c++;
+	if (*c == '1')
+	{ c++;
+	  if ( c[0] == '%' && c[1] == 'd' )
+	  { p += sprintf(p, "%d", p1);
+	    c += 2;
+	  }
+	} else if (*c == '2')
+	{ c++;
+	  if ( c[0] == '%' && c[1] == 'd' )
+	  { p += sprintf(p, "%d", p2);
+	    c += 2;
+	  }
+	}
+      } else
+      { *p++ = '%';
+	*p++ = *c++;
+      }
+    } else
+    { *p++ = *c++;
+    }
+  }
+
+  *p = '\0';
   return buf;
 }
+
 
 #if 0					/* not used anymore */
 /* tputs: output count times, with padding char ignored */
