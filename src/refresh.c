@@ -118,6 +118,7 @@ re_nextline(EditLine *el)
 
 	ELRE_ASSERT(el->el_refresh.r_cursor.v >= el->el_terminal.t_size.v,
 		    abort(),
+		    el,
 		    "\r\nre_putc: overflow! r_cursor.v == %d > %d\r\n",
 		    el->el_refresh.r_cursor.v, el->el_terminal.t_size.v);
 }
