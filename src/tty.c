@@ -517,7 +517,7 @@ tty_setup(EditLine *el)
 		return -1;
 
 #ifdef __MINGW64__
-	if (!isconsole(el->el_hOut)) {
+	if ( !(el->el_flags&EPILOG) && !isconsole(el->el_hOut)) {
 #else
 	if (!isatty(el->el_outfd)) {
 #endif
