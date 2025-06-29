@@ -1710,7 +1710,10 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
     out = el->el_hErr;
 
   assert(len < sizeof(buf));
-  WriteConsoleA(out, buf, len, NULL, NULL);
+  if ( el->el_flags & EPILOG )
+    WriteFile(out, buf, len, NULL, NULL);
+  else
+    WriteConsoleA(out, buf, len, NULL, NULL);
   return len;
 #else
   FILE *out;
