@@ -1255,6 +1255,8 @@ terminal__putc(EditLine *el, wint_t c)
 		return (int)i;
 	buf[i] = '\0';
 #ifdef __MINGW64__
+	if ( c == '\n' && (el->el_flags&EPILOG) ) /* Pipes do no \r\n translation */
+		return el_printf(el, EL_PTR_OUT, "\r\n", buf);
 	return el_printf(el, EL_PTR_OUT, "%s", buf);
 #else
 	return fputs(buf, el->el_outfile);
