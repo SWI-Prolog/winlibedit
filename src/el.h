@@ -111,6 +111,7 @@ typedef struct el_state_t {
 #include "sig.h"
 #ifdef __MINGW64__
 #include <windows.h>
+#define BUFFER_SIZE 1024
 #endif
 
 struct el_read_t;
@@ -121,6 +122,10 @@ struct editline {
 	HANDLE		 *el_hIn;
 	HANDLE		 *el_hOut;
 	HANDLE		 *el_hErr;
+  struct {
+    char   data[BUFFER_SIZE];
+    size_t len;
+  } out_buffer;
 #endif
 #ifndef __MINGW64__
 	FILE		 *el_infile;	/* Stdio stuff			*/

@@ -86,6 +86,7 @@ extern char* tgetstr(char*, char**);
 
 #include "el.h"
 #include "fcns.h"
+#include <stdbool.h>
 
 /*
  * IMPORTANT NOTE: these routines are allowed to look at the current screen
@@ -1260,13 +1261,29 @@ terminal__putc(EditLine *el, wint_t c)
 #endif
 }
 
+#if __MINGW64__
+static bool
+el_write_buffer(EditLine *el, HANDLE hOut, const char *buf, size_t len)
+{ if ( el->el_flags & EPILOG )
+    return WriteFile(hOut, buf, len, NULL, NULL);
+  else
+    return WriteConsoleA(hOut, buf, len, NULL, NULL);
+}
+#endif
+
 /* terminal__flush():
  *	Flush output
  */
 libedit_private void
 terminal__flush(EditLine *el)
 {
-#ifndef __MINGW64__
+#ifdef __MINGW64__
+  if ( el->out_buffer.len )
+  { el_write_buffer(el, el->el_hOut,
+		    el->out_buffer.data, el->out_buffer.len);
+    el->out_buffer.len = 0;
+  }
+#else
 	(void) fflush(el->el_outfile);
 #endif
 }
@@ -1700,20 +1717,21 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
 
   va_start(args, fmt);
 #if __MINGW64__
-  char buf[1024];
+  char buf[BUFFER_SIZE];
   HANDLE out;
 
   int len = vsnprintf(buf, sizeof(buf)-1, fmt, args);
-  if ( to == EL_PTR_OUT )
-    out = el->el_hOut;
-  else
-    out = el->el_hErr;
+  assert(len < sizeof(buf));	/* TODO: create larger buffer */
 
-  assert(len < sizeof(buf));
-  if ( el->el_flags & EPILOG )
-    WriteFile(out, buf, len, NULL, NULL);
-  else
-    WriteConsoleA(out, buf, len, NULL, NULL);
+  if ( to == EL_PTR_OUT )
+  { if ( el->out_buffer.len+len > BUFFER_SIZE )
+      terminal__flush(el);
+    memcpy(&el->out_buffer.data[el->out_buffer.len], buf, len);
+    el->out_buffer.len += len;
+  } else
+  { el_write_buffer(el, el->el_hErr, buf, len);
+  }
+
   return len;
 #else
   FILE *out;
