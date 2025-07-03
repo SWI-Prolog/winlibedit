@@ -374,6 +374,13 @@ el_wset(EditLine *el, int op, ...)
 		break;
 	}
 
+	case EL_GETSZFN:
+	{
+		el_szfunc_t rc = va_arg(ap, el_szfunc_t);
+		rv = el_terminal_setfn(&el->el_terminal, rc);
+		break;
+	}
+
 	case EL_CLIENTDATA:
 		el->el_data = va_arg(ap, void *);
 		break;
@@ -516,6 +523,11 @@ el_wget(EditLine *el, int op, ...)
 
 	case EL_GETCFN:
 		*va_arg(ap, el_rfunc_t *) = el_read_getfn(el->el_read);
+		rv = 0;
+		break;
+
+	case EL_GETSZFN:
+		*va_arg(ap, el_szfunc_t *) = el_terminal_getfn(&el->el_terminal);
 		rv = 0;
 		break;
 

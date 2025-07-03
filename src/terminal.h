@@ -66,6 +66,7 @@ typedef struct {
 	int	 *t_val;		/* termcap values	*/
 	char	 *t_cap;		/* Termcap buffer	*/
 	funckey_t	 *t_fkey;		/* Array of keys	*/
+        el_szfunc_t	 t_getsize;		/* Get terminal size */
 } el_terminal_t;
 
 /*
@@ -98,6 +99,8 @@ libedit_private void	terminal_deletechars(EditLine *, int);
 libedit_private void	terminal_clear_screen(EditLine *);
 libedit_private void	terminal_beep(EditLine *);
 libedit_private int	terminal_change_size(EditLine *, int, int);
+libedit_private int	el_terminal_setfn(el_terminal_t *el_terminal, el_szfunc_t rc);
+libedit_private el_szfunc_t el_terminal_getfn(el_terminal_t *el_terminal);
 libedit_private int	terminal_get_size(EditLine *, int *, int *);
 libedit_private int	terminal_init(EditLine *);
 libedit_private void	terminal_bind_arrow(EditLine *);

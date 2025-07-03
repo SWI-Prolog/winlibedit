@@ -923,6 +923,24 @@ terminal_set(EditLine *el, const char *term)
 	return i <= 0 ? -1 : 0;
 }
 
+/* el_terminal_setfn()
+   el_terminal_getfn()
+Set/Get the function to retrieve the terminal screen size.
+*/
+
+libedit_private int
+el_terminal_setfn(el_terminal_t *el_terminal, el_szfunc_t rc)
+{
+	el_terminal->t_getsize = rc;
+	return 0;
+}
+
+libedit_private el_szfunc_t
+el_terminal_getfn(el_terminal_t *el_terminal)
+{
+	return el_terminal->t_getsize;
+}
+
 
 /* terminal_get_size():
  *	Return the new window size in lines and cols, and
@@ -934,6 +952,11 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 
 	*cols = Val(T_co);
 	*lins = Val(T_li);
+
+	if ( el->el_terminal.t_getsize &&
+	     (*el->el_terminal.t_getsize)(el, cols, lins) == 0 ) {
+		return Val(T_co) != *cols || Val(T_li) != *lins;
+	}
 
 #ifdef __MINGW64__
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
