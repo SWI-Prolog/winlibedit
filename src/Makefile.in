@@ -147,7 +147,7 @@ am__libedit_la_SOURCES_DIST = chared.c common.c el.c eln.c emacs.c \
 	histedit.h keymacro.h map.h chartype.h parse.h prompt.h read.h \
 	refresh.h search.h sig.h sys.h terminal.h tty.h vis.h \
 	filecomplete.h editline/readline.h literal.h strlcpy.c \
-	strlcat.c getline.c vis.c unvis.c win_ncurses.c
+	strlcat.c getline.c vis.c unvis.c win_ncurses.c utf8.c
 @HAVE_STRLCPY_FALSE@am__objects_1 = strlcpy.lo
 @HAVE_STRLCAT_FALSE@am__objects_2 = strlcat.lo
 @HAVE_GETLINE_FALSE@am__objects_3 = getline.lo
@@ -159,7 +159,7 @@ am_libedit_la_OBJECTS = chared.lo common.lo el.lo eln.lo emacs.lo \
 	reallocarr.lo wcsdup.lo tokenizer.lo tokenizern.lo history.lo \
 	historyn.lo filecomplete.lo readline.lo literal.lo \
 	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) win_ncurses.lo
+	$(am__objects_4) $(am__objects_5) win_ncurses.lo utf8.lo
 am__objects_6 =
 nodist_libedit_la_OBJECTS = $(am__objects_6)
 libedit_la_OBJECTS = $(am_libedit_la_OBJECTS) \
@@ -199,8 +199,8 @@ am__depfiles_remade = ./$(DEPDIR)/chared.Plo ./$(DEPDIR)/chartype.Plo \
 	./$(DEPDIR)/sig.Plo ./$(DEPDIR)/strlcat.Plo \
 	./$(DEPDIR)/strlcpy.Plo ./$(DEPDIR)/terminal.Plo \
 	./$(DEPDIR)/tokenizer.Plo ./$(DEPDIR)/tokenizern.Plo \
-	./$(DEPDIR)/tty.Plo ./$(DEPDIR)/unvis.Plo ./$(DEPDIR)/vi.Plo \
-	./$(DEPDIR)/vis.Plo ./$(DEPDIR)/wcsdup.Plo \
+	./$(DEPDIR)/tty.Plo ./$(DEPDIR)/unvis.Plo ./$(DEPDIR)/utf8.Plo \
+	./$(DEPDIR)/vi.Plo ./$(DEPDIR)/vis.Plo ./$(DEPDIR)/wcsdup.Plo \
 	./$(DEPDIR)/win_ncurses.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -374,7 +374,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 BUILT_SOURCES = vi.h emacs.h common.h fcns.h help.h func.h
-AHDR = vi.h emacs.h common.h 
+AHDR = vi.h emacs.h common.h
 ASRC = $(srcdir)/vi.c $(srcdir)/emacs.c $(srcdir)/common.c
 CLEANFILES = $(BUILT_SOURCES)
 lib_LTLIBRARIES = libedit.la
@@ -386,7 +386,8 @@ libedit_la_SOURCES = chared.c common.c el.c eln.c emacs.c hist.c \
 	keymacro.h map.h chartype.h parse.h prompt.h read.h refresh.h \
 	search.h sig.h sys.h terminal.h tty.h vis.h filecomplete.h \
 	editline/readline.h literal.h $(am__append_1) $(am__append_2) \
-	$(am__append_3) $(am__append_4) $(am__append_5) win_ncurses.c
+	$(am__append_3) $(am__append_4) $(am__append_5) win_ncurses.c \
+	utf8.c
 EXTRA_DIST = makelist shlib_version
 nobase_include_HEADERS = histedit.h editline/readline.h
 nodist_libedit_la_SOURCES = $(BUILT_SOURCES)
@@ -497,6 +498,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tokenizern.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tty.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unvis.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utf8.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vi.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vis.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wcsdup.Plo@am__quote@ # am--include-marker
@@ -721,6 +723,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/tokenizern.Plo
 	-rm -f ./$(DEPDIR)/tty.Plo
 	-rm -f ./$(DEPDIR)/unvis.Plo
+	-rm -f ./$(DEPDIR)/utf8.Plo
 	-rm -f ./$(DEPDIR)/vi.Plo
 	-rm -f ./$(DEPDIR)/vis.Plo
 	-rm -f ./$(DEPDIR)/wcsdup.Plo
@@ -799,6 +802,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/tokenizern.Plo
 	-rm -f ./$(DEPDIR)/tty.Plo
 	-rm -f ./$(DEPDIR)/unvis.Plo
+	-rm -f ./$(DEPDIR)/utf8.Plo
 	-rm -f ./$(DEPDIR)/vi.Plo
 	-rm -f ./$(DEPDIR)/vis.Plo
 	-rm -f ./$(DEPDIR)/wcsdup.Plo

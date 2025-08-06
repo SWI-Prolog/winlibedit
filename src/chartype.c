@@ -39,6 +39,9 @@ __RCSID("$NetBSD: chartype.c,v 1.37 2023/08/10 20:38:00 mrg Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#ifdef __MINGW64__
+#include "utf8.h"
+#endif
 
 #include "el.h"
 
@@ -187,22 +190,31 @@ ct_decode_argv(int argc, const char *argv[], ct_buffer_t *conv)
 libedit_private size_t
 ct_enc_width(wchar_t c)
 {
-	mbstate_t mbs;
 	char buf[MB_LEN_MAX];
+#ifdef __MINGW64__
+	char *e = utf8_put_char(buf, c);
+	return e-buf;
+#else
+	mbstate_t mbs;
 	size_t size;
 	memset(&mbs, 0, sizeof(mbs));
 
 	if ((size = wcrtomb(buf, c, &mbs)) == (size_t)-1)
 		return 0;
 	return size;
+#endif
 }
 
 libedit_private ssize_t
 ct_encode_char(char *dst, size_t len, wchar_t c)
 {
-	ssize_t l = 0;
 	if (len < ct_enc_width(c))
 		return -1;
+#ifdef __MINGW64__
+	char *e = utf8_put_char(dst, c);
+	return e-dst;
+#else
+	ssize_t l = 0;
 	l = wctomb(dst, c);
 
 	if (l < 0) {
@@ -210,6 +222,7 @@ ct_encode_char(char *dst, size_t len, wchar_t c)
 		l = 0;
 	}
 	return l;
+#endif
 }
 
 libedit_private const wchar_t *
@@ -256,7 +269,7 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 #if __MINGW64__
 static inline int
 wcwidth(wchar_t c)
-{ return 1;
+{ return 1;			/* TBD: double-width Unicode chars */
 }
 #endif
 

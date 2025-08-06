@@ -1,7 +1,7 @@
 
 BUILT_SOURCES = vi.h emacs.h common.h fcns.h help.h func.h
 
-AHDR= vi.h emacs.h common.h 
+AHDR= vi.h emacs.h common.h
 ASRC= $(srcdir)/vi.c $(srcdir)/emacs.c $(srcdir)/common.c
 
 vi.h: Makefile $(srcdir)/vi.c
@@ -50,7 +50,7 @@ endif
 if !HAVE_UNVIS
 libedit_la_SOURCES += unvis.c
 endif
-libedit_la_SOURCES += win_ncurses.c
+libedit_la_SOURCES += win_ncurses.c utf8.c
 
 EXTRA_DIST = makelist shlib_version
 nobase_include_HEADERS = histedit.h editline/readline.h
