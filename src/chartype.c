@@ -131,15 +131,31 @@ ct_decode_string(const char *s, ct_buffer_t *conv)
 	if (!s)
 		return NULL;
 
+#ifdef __MINGW64__
+	size_t slen = strlen(s);
+	len = libedit_utf8_strlen(s, slen);
+#else
 	len = mbstowcs(NULL, s, (size_t)0);
 	if (len == (size_t)-1)
 		return NULL;
+#endif
 
 	if (conv->wsize < ++len)
 		if (ct_conv_wbuff_resize(conv, len + CT_BUFSIZ) == -1)
 			return NULL;
 
+#ifdef __MINGW64__
+	const char *e = &s[slen];
+	wchar_t *ws = conv->wbuff;
+	while(s<e)
+	{ int chr;
+	  s = utf8_get_char(s, &chr);
+	  ws = put_wchar(ws, chr);
+	}
+	*ws = 0;
+#else
 	mbstowcs(conv->wbuff, s, conv->wsize);
+#endif
 	return conv->wbuff;
 }
 
