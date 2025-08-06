@@ -1287,12 +1287,47 @@ terminal__putc(EditLine *el, wint_t c)
 }
 
 #if __MINGW64__
+#include "utf8.h"
+
+static bool
+is_all_ascii(const char *buf, size_t len)
+{ for(size_t i=0; i<len; i++)
+  { if ( buf[i]&0xff > 127 )
+      return false;
+  }
+
+  return true;
+}
+
+#define WBUF_SIZE 1024
+
 static bool
 el_write_buffer(EditLine *el, HANDLE hOut, const char *buf, size_t len)
 { if ( el->el_flags & EPILOG )
-    return WriteFile(hOut, buf, len, NULL, NULL);
-  else
-    return WriteConsoleA(hOut, buf, len, NULL, NULL);
+  { return WriteFile(hOut, buf, len, NULL, NULL);
+  } else if ( is_all_ascii(buf, len) )
+  { return WriteConsoleA(hOut, buf, len, NULL, NULL);
+  } else
+  { wchar_t wbuf[WBUF_SIZE];
+    wchar_t *ws = wbuf;
+    wchar_t *we = &wbuf[WBUF_SIZE];
+    const char *s = buf;
+    const char *e = &buf[len];
+
+    while(s<e)
+    { int chr;
+
+      s = utf8_get_char(s, &chr);
+      ws = put_wchar(ws, chr);
+      if ( ws > we-2 )
+      { if ( !WriteConsoleW(hOut, wbuf, ws-wbuf, NULL, NULL) )
+	  return false;
+	ws = wbuf;
+      }
+    }
+
+    return WriteConsoleW(hOut, wbuf, ws-wbuf, NULL, NULL);
+  }
 }
 #endif
 
