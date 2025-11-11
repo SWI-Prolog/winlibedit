@@ -161,7 +161,7 @@ vi_prev_big_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.buffer)
 		return CC_ERROR;
 
-	el->el_line.cursor = cv_prev_word(el->el_line.cursor,
+	el->el_line.cursor = cv_prev_word(el, el->el_line.cursor,
 	    el->el_line.buffer,
 	    el->el_state.argument,
 	    cv__isWord);
@@ -186,7 +186,7 @@ vi_prev_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.buffer)
 		return CC_ERROR;
 
-	el->el_line.cursor = cv_prev_word(el->el_line.cursor,
+	el->el_line.cursor = cv_prev_word(el, el->el_line.cursor,
 	    el->el_line.buffer,
 	    el->el_state.argument,
 	    cv__isword);
@@ -478,7 +478,7 @@ vi_end_big_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return CC_ERROR;
 
-	el->el_line.cursor = cv__endword(el->el_line.cursor,
+	el->el_line.cursor = cv__endword(el, el->el_line.cursor,
 	    el->el_line.lastchar, el->el_state.argument, cv__isWord);
 
 	if (el->el_chared.c_vcmd.action != NOP) {
@@ -502,7 +502,7 @@ vi_end_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return CC_ERROR;
 
-	el->el_line.cursor = cv__endword(el->el_line.cursor,
+	el->el_line.cursor = cv__endword(el, el->el_line.cursor,
 	    el->el_line.lastchar, el->el_state.argument, cv__isword);
 
 	if (el->el_chared.c_vcmd.action != NOP) {

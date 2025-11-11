@@ -123,7 +123,7 @@ ed_delete_prev_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.buffer)
 		return CC_ERROR;
 
-	cp = c__prev_word(el->el_line.cursor, el->el_line.buffer,
+	cp = c__prev_word(el, el->el_line.cursor, el->el_line.buffer,
 	    el->el_state.argument, ce__isword);
 
 	for (p = cp, kp = el->el_chared.c_kill.buf; p < el->el_line.cursor; p++)
@@ -320,7 +320,7 @@ ed_prev_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor == el->el_line.buffer)
 		return CC_ERROR;
 
-	el->el_line.cursor = c__prev_word(el->el_line.cursor,
+	el->el_line.cursor = c__prev_word(el, el->el_line.cursor,
 	    el->el_line.buffer,
 	    el->el_state.argument,
 	    ce__isword);

@@ -301,7 +301,8 @@ ce_inc_search(EditLine *el, int dir)
 						break;
 					el->el_line.cursor +=
 					    el->el_search.patlen - LEN - 1;
-					cp = c__next_word(el->el_line.cursor,
+					cp = c__next_word(el,
+					    el->el_line.cursor,
 					    el->el_line.lastchar, 1,
 					    ce__isword);
 					while (el->el_line.cursor < cp &&

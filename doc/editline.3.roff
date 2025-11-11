@@ -667,6 +667,18 @@ or
 .Fa fd
 =
 .Dv 2 .
+.It Dv EL_WORDCHARS , Fa "Char *wordchars"
+Define the list of characters that and be part of a word, in addition
+to alphanumeric characters.
+This list is
+.Dq *?_-.[]~=
+for
+.Dv emacs
+mode and
+.Dq _
+for
+.Dv vi
+mode.
 .El
 .It Fn el_source
 Initialize

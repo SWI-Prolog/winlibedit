@@ -933,6 +933,7 @@ map_init(EditLine *el)
 	memcpy(el->el_map.func, el_func, sizeof(*el->el_map.func)
 	    * EL_NUM_FCNS);
 	el->el_map.nfunc = EL_NUM_FCNS;
+	el->el_map.wordchars = NULL;
 
 #ifdef VIDEFAULT
 	map_init_vi(el);
@@ -954,6 +955,7 @@ map_end(EditLine *el)
 {
 
 	el_free(el->el_map.alt);
+	el_free(el->el_map.wordchars);
 	el->el_map.alt = NULL;
 	el_free(el->el_map.key);
 	el->el_map.key = NULL;
@@ -1051,6 +1053,8 @@ map_init_vi(EditLine *el)
 
 	tty_bind_char(el, 1);
 	terminal_bind_arrow(el);
+	el_free(el->el_map.wordchars);
+	el->el_map.wordchars = wcsdup(L"_");
 }
 
 
@@ -1085,6 +1089,8 @@ map_init_emacs(EditLine *el)
 
 	tty_bind_char(el, 1);
 	terminal_bind_arrow(el);
+	el_free(el->el_map.wordchars);
+	el->el_map.wordchars = wcsdup(L"*?_-.[]~=");
 }
 
 
@@ -1125,6 +1131,33 @@ map_get_editor(EditLine *el, const wchar_t **editor)
 		return 0;
 	}
 	return -1;
+}
+
+
+/* map_set_wordchars():
+ *	Set the wordchars
+ */
+libedit_private int
+map_set_wordchars(EditLine *el, wchar_t *wordchars)
+{
+
+	el_free(el->el_map.wordchars);
+	el->el_map.wordchars = wcsdup(wordchars);
+	return 0;
+}
+
+
+/* map_get_wordchars():
+ *	Retrieve the wordhars
+ */
+libedit_private int
+map_get_wordchars(EditLine *el, const wchar_t **wordchars)
+{
+
+	if (wordchars == NULL)
+		return -1;
+	*wordchars = el->el_map.wordchars;
+	return 0;
 }
 
 

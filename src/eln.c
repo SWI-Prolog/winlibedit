@@ -147,6 +147,7 @@ el_set(EditLine *el, int op, ...)
 		break;
 
 	case EL_EDITOR:		/* const wchar_t * */
+	case EL_WORDCHARS:	/* const wchar_t * */
 		ret = el_wset(el, op, ct_decode_string(va_arg(ap, char *),
 		    &el->el_lgcyconv));
 		break;
@@ -300,7 +301,8 @@ el_get(EditLine *el, int op, ...)
 		break;
 	}
 
-	case EL_EDITOR: {
+	case EL_EDITOR:
+	case EL_WORDCHARS: {
 		const char **p = va_arg(ap, const char **);
 		const wchar_t *pw;
 		ret = el_wget(el, op, &pw);

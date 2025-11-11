@@ -409,6 +409,9 @@ el_wset(EditLine *el, int op, ...)
 		terminal__flush(el);
 		break;
 
+	case EL_WORDCHARS:
+		rv = map_set_wordchars(el, va_arg(ap, wchar_t *));
+		break;
 	default:
 		rv = -1;
 		break;
@@ -523,6 +526,11 @@ el_wget(EditLine *el, int op, ...)
 		}
 		break;
 	}
+
+	case EL_WORDCHARS:
+		rv = map_get_wordchars(el, va_arg(ap, const wchar_t **));
+		break;
+
 	default:
 		rv = -1;
 		break;
