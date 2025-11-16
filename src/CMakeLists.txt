@@ -152,6 +152,7 @@ endif()
 # Build library
 # -------------------------------------------------------------------------
 add_library(edit ${LIBEDIT_SOURCES} ${GENERATED_HEADERS})
+set_target_properties(edit PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_dependencies(edit generate_headers)
 
 target_include_directories(edit
