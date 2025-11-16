@@ -131,6 +131,7 @@ check_include_file("termcap.h" HAVE_TERMCAP_H)
 check_include_file("term.h" HAVE_TERM_H)
 check_include_file("sys/wait.h" HAVE_SYS_WAIT_H)
 check_include_file("pwd.h" HAVE_PWD_H)
+check_include_file("sys/ioctl.h" HAVE_IOCTL_H)
 
 if(NOT HAVE_STRLCPY)
     list(APPEND LIBEDIT_SOURCES strlcpy.c)

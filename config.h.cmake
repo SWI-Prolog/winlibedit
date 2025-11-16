@@ -26,6 +26,7 @@
 #cmakedefine HAVE_TERM_H @HAVE_TERM_H@
 #cmakedefine HAVE_SYS_WAIT_H @HAVE_SYS_WAIT_H@
 #cmakedefine HAVE_PWD_H @HAVE_PWD_H@
+#cmakedefine HAVE_IOCTL_H @HAVE_IOCTL_H@
 
 /* Define if building on Windows */
 #cmakedefine _WIN32 @WIN32@
