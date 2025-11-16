@@ -610,7 +610,7 @@ MAKEFLAGS=
 
 # Identity of this package.
 PACKAGE_NAME='libedit'
-PACKAGE_TARNAME='libedit-20251111'
+PACKAGE_TARNAME='libedit-20251116'
 PACKAGE_VERSION='3.1'
 PACKAGE_STRING='libedit 3.1'
 PACKAGE_BUGREPORT=''
@@ -1413,7 +1413,7 @@ Fine tuning of the installation directories:
   --localedir=DIR         locale-dependent data [DATAROOTDIR/locale]
   --mandir=DIR            man documentation [DATAROOTDIR/man]
   --docdir=DIR            documentation root
-                          [DATAROOTDIR/doc/libedit-20251111]
+                          [DATAROOTDIR/doc/libedit-20251116]
   --htmldir=DIR           html documentation [DOCDIR]
   --dvidir=DIR            dvi documentation [DOCDIR]
   --pdfdir=DIR            pdf documentation [DOCDIR]
@@ -4750,7 +4750,7 @@ fi
 
 
 # Define the identity of the package.
- PACKAGE='libedit-20251111'
+ PACKAGE='libedit-20251116'
  VERSION='3.1'
 
 
@@ -14780,7 +14780,13 @@ test -n "$NROFF" || NROFF="/bin/false"
 
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lncurses" >&5
+case "$host" in
+  *mingw* | *cygwin* | *msys*)
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: Skipping curses library checks on Windows" >&5
+printf "%s\n" "$as_me: Skipping curses library checks on Windows" >&6;}
+    ;;
+  *)
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lncurses" >&5
 printf %s "checking for tgetent in -lncurses... " >&6; }
 if test ${ac_cv_lib_ncurses_tgetent+y}
 then :
@@ -14981,18 +14987,20 @@ then :
 
 fi
 
+         ;;
+esac
+fi
+
+       ;;
+esac
+fi
+
      ;;
 esac
 fi
 
-   ;;
+    ;;
 esac
-fi
-
- ;;
-esac
-fi
-
 
 ### deprecate option --enable-widec to turn on use of wide-character support
 
@@ -15417,7 +15425,13 @@ then :
 fi
 
 
-ac_fn_c_check_header_compile "$LINENO" "ncurses.h" "ac_cv_header_ncurses_h" "$ac_includes_default"
+case "$host" in
+  *mingw* | *cygwin* | *msys*)
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: Skipping curses library checks on Windows" >&5
+printf "%s\n" "$as_me: Skipping curses library checks on Windows" >&6;}
+    ;;
+  *)
+  ac_fn_c_check_header_compile "$LINENO" "ncurses.h" "ac_cv_header_ncurses_h" "$ac_includes_default"
 if test "x$ac_cv_header_ncurses_h" = xyes
 then :
 
@@ -15442,8 +15456,7 @@ fi
 esac
 fi
 
-
-ac_fn_c_check_header_compile "$LINENO" "termios.h" "ac_cv_header_termios_h" "$ac_includes_default"
+  ac_fn_c_check_header_compile "$LINENO" "termios.h" "ac_cv_header_termios_h" "$ac_includes_default"
 if test "x$ac_cv_header_termios_h" = xyes
 then :
 
@@ -15452,6 +15465,8 @@ else case e in #(
 esac
 fi
 
+  ;;
+esac
 
 ## include curses.h to prevent "Present But Cannot Be Compiled"
 ac_fn_c_check_header_compile "$LINENO" "term.h" "ac_cv_header_term_h" "#if HAVE_CURSES_H
