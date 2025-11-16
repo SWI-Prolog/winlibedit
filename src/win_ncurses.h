@@ -21,7 +21,7 @@ char *tgoto(const char *cap, int col, int row);
 //int tputs(const char *str, int affcnt, int (*putc)(int));
 
 // Terminal attribute structure and functions
-#include <termios.h>
+#include "win_termios.h"
 int tcgetattr(HANDLE fd, struct termios *t);
 int tcsetattr(HANDLE fd, int optional_actions, const struct termios *t);
 

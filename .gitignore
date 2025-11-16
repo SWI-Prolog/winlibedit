@@ -10,6 +10,8 @@ help.h
 common.h
 vi.h
 stamp-h1
+autom4te.cache
+actmp.*
 *.o
 *.lo
 *.Plo
@@ -23,3 +25,5 @@ stamp-h1
 *.[1-9]
 *~
 TAGS
+build
+build.*

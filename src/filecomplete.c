@@ -67,7 +67,7 @@ static const wchar_t break_chars[] = L" \t\n\"\\'`@$><=;|&{(";
 char *
 fn_tilde_expand(const char *txt)
 {
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 #if defined(HAVE_GETPW_R_POSIX) || defined(HAVE_GETPW_R_DRAFT)
 	struct passwd pwres;
 	char pwbuf[1024];
@@ -783,7 +783,7 @@ fn_complete2(EditLine *el,
 			(void)el_printf(el, EL_PTR_OUT,
 			    "Display all %zu possibilities? (y or n) ",
 			    matches_num);
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 			(void)fflush(el->el_outfile);
 #endif
 			if (getc(stdin) != 'y')

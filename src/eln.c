@@ -348,13 +348,14 @@ el_get(EditLine *el, int op, ...)
 		ret = el_wget(el, op, what, fpp);
 		break;
 	}
-
+#ifdef __WINDOWS__
 	case EL_GETHANDLE: {          /* int, HANDLE ** */
 		int what = va_arg(ap, int);
 		HANDLE **fpp = va_arg(ap, HANDLE **);
 		ret = el_wget(el, op, what, fpp);
 		break;
 	}
+#endif
 
 	default:
 		ret = -1;

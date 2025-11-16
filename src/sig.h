@@ -72,7 +72,7 @@
 	_DO(SIGWINCH)
 #define ALLSIGSNO	7
 
-#if __MINGW64__
+#if __WINDOWS__
 typedef int sigset_t;
 struct sigaction {
   void     (*sa_handler)(int);
@@ -115,7 +115,7 @@ kill(pid_t pid, int sig)
 { return 0;
 }
 
-#endif
+#endif/*__WINDOWS__*/
 
 typedef struct {
 	struct sigaction sig_action[ALLSIGSNO];

@@ -40,6 +40,8 @@
 #ifndef _h_sys
 #define	_h_sys
 
+#include <wchar.h>
+
 #if defined(HAVE_SYS_TYPES_H) && defined(__sun)
 #include <sys/types.h>
 #endif
@@ -63,7 +65,7 @@
 #endif
 
 /* If your compiler does not support this, define it to be empty. */
-#if __MINGW64__
+#if __WINDOWS__
 #define libedit_private
 #else
 #define libedit_private __attribute__((__visibility__("hidden")))

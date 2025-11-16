@@ -87,7 +87,7 @@ char *secure_getenv(char const *name)
 #endif
 
 libedit_private EditLine *
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 el_init_internal(const char *prog, HANDLE fin, HANDLE fout, HANDLE ferr,
 		 int flags)
 #else
@@ -100,13 +100,13 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	if (el == NULL)
 		return NULL;
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	el->el_hIn  = fin;
 	el->el_hOut = fout;
 	el->el_hErr = ferr;
 #endif
 
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	el->el_infile = fin;
 	el->el_outfile = fout;
 	el->el_errfile = ferr;
@@ -149,7 +149,7 @@ el_init_internal(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 	return el;
 }
 
-#if __MINGW64__
+#if __WINDOWS__
 EditLine *
 el_init_handles(const char *prog,
 		HANDLE fin, HANDLE fout, HANDLE ferr,
@@ -406,7 +406,7 @@ el_wset(EditLine *el, int op, ...)
 		rv = 0;
 		break;
 
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	case EL_SETFP:
 	{
 		FILE *fp;
@@ -541,7 +541,7 @@ el_wget(EditLine *el, int op, ...)
 		rv = 0;
 		break;
 
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	case EL_GETFP:
 	{
 		int what;
@@ -570,6 +570,7 @@ el_wget(EditLine *el, int op, ...)
 	case EL_WORDCHARS:
 		rv = map_get_wordchars(el, va_arg(ap, const wchar_t **));
 		break;
+#if __WINDOWS__
 	case EL_GETHANDLE:
 	{
 		int what;
@@ -594,6 +595,7 @@ el_wget(EditLine *el, int op, ...)
 		}
 		break;
 	}
+#endif /*__WINDOWS__*/
 	default:
 		rv = -1;
 		break;
@@ -696,7 +698,7 @@ el_resize(EditLine *el)
 	int lins, cols;
 	sigset_t oset, nset;
 
-#if !__MINGW64__
+#if !__WINDOWS__
 	(void) sigemptyset(&nset);
 	(void) sigaddset(&nset, SIGWINCH);
 	(void) sigprocmask(SIG_BLOCK, &nset, &oset);
@@ -706,7 +708,7 @@ el_resize(EditLine *el)
 	if (terminal_get_size(el, &lins, &cols))
 		terminal_change_size(el, lins, cols);
 
-#if !__MINGW64__
+#if !__WINDOWS__
 	(void) sigprocmask(SIG_SETMASK, &oset, NULL);
 #endif
 }

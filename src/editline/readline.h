@@ -31,6 +31,10 @@
 #ifndef _READLINE_H_
 #define _READLINE_H_
 
+#if defined(_MSC_VER) || defined(___MINGW64__)
+#define __WINDOWS__ 1
+#endif
+
 #include <sys/types.h>
 #include <stdio.h>
 
@@ -77,7 +81,7 @@ typedef KEYMAP_ENTRY *Keymap;
 #define control_character_bit		0x40
 
 #ifndef CTRL
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 #include <sys/ioctl.h>
 #if !defined(__sun) && !defined(__hpux) && !defined(_AIX)
 #include <sys/ttydefaults.h>

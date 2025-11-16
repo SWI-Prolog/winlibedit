@@ -43,9 +43,13 @@
 #define	LIBEDIT_MAJOR 2
 #define	LIBEDIT_MINOR 11
 
+#if defined(_MSC_VER) || defined(___MINGW64__)
+#define __WINDOWS__ 1
+#endif
+
 #include <sys/types.h>
 #include <stdio.h>
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 #include <windows.h>
 #endif
 
@@ -88,7 +92,7 @@ typedef struct lineinfo {
 /*
  * Initialization, cleanup, and resetting
  */
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 #define EPILOG		0x400	/* SWI-Prolog Epilog: I/O on pipes. */
 EditLine	*el_init_handles(const char *, HANDLE, HANDLE, HANDLE,
 				 int flags);

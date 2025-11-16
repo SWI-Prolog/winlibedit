@@ -237,7 +237,7 @@ _resize_fun(EditLine *el, void *a)
 static const char *
 _default_history_file(void)
 {
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	struct passwd *p;
 	static char *path;
 	size_t len;
@@ -333,14 +333,14 @@ rl_initialize(void)
 	/*
 	 * See if we don't really want to run the editor
 	 */
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	if (tcgetattr(GetStdHandle(STD_INPUT_HANDLE), &t) != -1 && (t.c_lflag & ECHO) == 0)
 #else
 	if (tcgetattr(fileno(rl_instream), &t) != -1 && (t.c_lflag & ECHO) == 0)
 #endif
 		editmode = 0;
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	e = el_init_internal(rl_readline_name,
 			     GetStdHandle(STD_INPUT_HANDLE),
 			     GetStdHandle(STD_OUTPUT_HANDLE),
@@ -1904,7 +1904,7 @@ filename_completion_function(const char *name, int state)
 char *
 username_completion_function(const char *text, int state)
 {
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	struct passwd *pass = NULL;
 
 	if (text[0] == '\0')
@@ -2285,7 +2285,7 @@ _rl_event_read_char(EditLine *el, wchar_t *wc)
 
 		(*rl_event_hook)();
 
-#if defined(FIONREAD) && !defined(__MINGW64__)
+#if defined(FIONREAD) && !defined(__WINDOWS__)
 		if (ioctl(el->el_infd, FIONREAD, &n) < 0)
 			return -1;
 		if (n)
@@ -2300,7 +2300,7 @@ _rl_event_read_char(EditLine *el, wchar_t *wc)
 		num_read = read(el->el_infd, &ch, 1);
 		if (fcntl(el->el_infd, F_SETFL, n))
 			return -1;
-#elif __MINGW64__
+#elif __WINDOWS__
 		DWORD done;
 		ReadConsoleA(el->el_hIn, &ch, 1, &done, NULL);
 		num_read = done;

@@ -1,12 +1,14 @@
 // term_win_vt100.c
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
-#include "ncurses.h"
+#endif
+#include "win_ncurses.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <termios.h>
+#include "win_termios.h"
 
 int
 tcenablecolor(HANDLE hOut)

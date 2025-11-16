@@ -47,7 +47,7 @@ __RCSID("$NetBSD: search.c,v 1.52 2024/06/30 16:26:30 christos Exp $");
 #include <stdlib.h>
 #include <sys/types.h>
 #include <string.h>
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 #if defined(REGEX)
 #include <regex.h>
 #elif defined(REGEXP)
@@ -117,7 +117,7 @@ regerror(const char *msg)
 libedit_private int
 el_match(const wchar_t *str, const wchar_t *pat)
 {
-#if __MINGW64__
+#if __WINDOWS__
   return 0;
 #else
 	static ct_buffer_t conv;
@@ -158,7 +158,7 @@ el_match(const wchar_t *str, const wchar_t *pat)
 	else
 		return re_exec(ct_encode_string(str, &conv)) == 1;
 #endif
-#endif/*__MINGW64__*/
+#endif/*__WINDOWS__*/
 }
 
 

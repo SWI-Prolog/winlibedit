@@ -60,7 +60,9 @@ __RCSID("$NetBSD: terminal.c,v 1.46 2023/02/04 14:34:28 christos Exp $");
 #ifdef HAVE_TERMCAP_H
 #include <termcap.h>
 #endif
-#ifdef HAVE_CURSES_H
+#if __WINDOWS__
+#include "win_ncurses.h"
+#elif HAVE_CURSES_H
 #include <curses.h>
 #elif HAVE_NCURSES_H
 #include <ncurses.h>
@@ -281,7 +283,7 @@ terminal_setflags(EditLine *el)
 libedit_private int
 terminal_init(EditLine *el)
 {
-#if __MINGW64__
+#if __WINDOWS__
 	tcenablecolor(el->el_hOut);
 #endif
 	el->el_terminal.t_buf = el_calloc(TC_BUFSIZE,
@@ -958,13 +960,13 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 		return Val(T_co) != *cols || Val(T_li) != *lins;
 	}
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	if ( GetConsoleScreenBufferInfo(el->el_hOut, &csbi) )
 	{ *cols = csbi.dwSize.X;
 	  *lins = csbi.dwSize.Y;
 	}
-#else/*__MINGW64__*/
+#else/*__WINDOWS__*/
 #ifdef TIOCGWINSZ
 	{
 		struct winsize ws;
@@ -987,7 +989,7 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 		}
 	}
 #endif
-#endif/*__MINGW64__*/
+#endif/*__WINDOWS__*/
 	return Val(T_co) != *cols || Val(T_li) != *lins;
 }
 
@@ -1243,7 +1245,7 @@ terminal_putc(int c)
 static void
 terminal_tputs(EditLine *el, const char *cap, int affcnt)
 {
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
         el_printf(el, EL_PTR_OUT, "%s", cap);
 #else
 #ifdef _REENTRANT
@@ -1268,7 +1270,7 @@ terminal__putc(EditLine *el, wint_t c)
 	if (c == MB_FILL_CHAR)
 		return 0;
 	if (c & EL_LITERAL)
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 		return el_printf(el, EL_PTR_OUT, "%s", literal_get(el, c));
 #else
 		return fputs(literal_get(el, c), el->el_outfile);
@@ -1277,7 +1279,7 @@ terminal__putc(EditLine *el, wint_t c)
 	if (i <= 0)
 		return (int)i;
 	buf[i] = '\0';
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	if ( c == '\n' && (el->el_flags&EPILOG) ) /* Pipes do no \r\n translation */
 		return el_printf(el, EL_PTR_OUT, "\r\n", buf);
 	return el_printf(el, EL_PTR_OUT, "%s", buf);
@@ -1286,7 +1288,7 @@ terminal__putc(EditLine *el, wint_t c)
 #endif
 }
 
-#if __MINGW64__
+#if __WINDOWS__
 #include "utf8.h"
 
 static bool
@@ -1337,7 +1339,7 @@ el_write_buffer(EditLine *el, HANDLE hOut, const char *buf, size_t len)
 libedit_private void
 terminal__flush(EditLine *el)
 {
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
   if ( el->out_buffer.len )
   { el_write_buffer(el, el->el_hOut,
 		    el->out_buffer.data, el->out_buffer.len);
@@ -1401,7 +1403,7 @@ terminal_telltc(EditLine *el, int argc __attribute__((__unused__)),
 		(void) el_printf(el, EL_PTR_OUT, "\t%25s (%s) == %s\n",
 		    t->long_name, t->name, ub);
 	}
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	(void) el_printf(el, EL_PTR_OUT, "\n");
 #else
 	(void) fputc('\n', el->el_outfile);
@@ -1776,7 +1778,7 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
 { va_list args;
 
   va_start(args, fmt);
-#if __MINGW64__
+#if __WINDOWS__
   char buf[BUFFER_SIZE];
   HANDLE out;
 
@@ -1799,7 +1801,7 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
   if ( to == EL_PTR_OUT )
     out = el->el_outfile;
   else
-    out = el_errfile;
+    out = el->el_errfile;
 
   return vfprintf(out, fmt, args);
 #endif

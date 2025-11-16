@@ -188,7 +188,7 @@ re_putliteral(EditLine *el, const wchar_t *begin, const wchar_t *end)
 	}
 }
 
-#if __MINGW64__
+#if __WINDOWS__
 static inline int
 wcwidth(wchar_t c)
 { return 1;

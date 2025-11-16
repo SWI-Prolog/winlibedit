@@ -1002,7 +1002,7 @@ libedit_private el_action_t
 /*ARGSUSED*/
 vi_histedit(EditLine *el, wint_t c __attribute__((__unused__)))
 {
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	int fd;
 	pid_t pid;
 	ssize_t st;
@@ -1077,7 +1077,7 @@ error:
 	el_free(cp);
 	close(fd);
 	unlink(tempfile);
-#endif/*__MINGW64__*/
+#endif/*__WINDOWS__*/
 	return CC_ERROR;
 }
 

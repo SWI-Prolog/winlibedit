@@ -20,3 +20,10 @@ Plans
 
   - Possibly strip a lot of the functionality?
   - Add CMake build?
+
+Building
+
+  - Cross compilation using Linux
+    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-mingw64.cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+	  -G Ninja ..

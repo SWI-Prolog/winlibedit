@@ -39,7 +39,7 @@ __RCSID("$NetBSD: chartype.c,v 1.37 2023/08/10 20:38:00 mrg Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 #include "utf8.h"
 #endif
 
@@ -131,7 +131,7 @@ ct_decode_string(const char *s, ct_buffer_t *conv)
 	if (!s)
 		return NULL;
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	size_t slen = strlen(s);
 	len = libedit_utf8_strlen(s, slen);
 #else
@@ -144,7 +144,7 @@ ct_decode_string(const char *s, ct_buffer_t *conv)
 		if (ct_conv_wbuff_resize(conv, len + CT_BUFSIZ) == -1)
 			return NULL;
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	const char *e = &s[slen];
 	wchar_t *ws = conv->wbuff;
 	while(s<e)
@@ -207,7 +207,7 @@ libedit_private size_t
 ct_enc_width(wchar_t c)
 {
 	char buf[MB_LEN_MAX];
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	char *e = utf8_put_char(buf, c);
 	return e-buf;
 #else
@@ -226,7 +226,7 @@ ct_encode_char(char *dst, size_t len, wchar_t c)
 {
 	if (len < ct_enc_width(c))
 		return -1;
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	char *e = utf8_put_char(dst, c);
 	return e-dst;
 #else
@@ -282,7 +282,7 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 	return conv->wbuff;
 }
 
-#if __MINGW64__
+#if __WINDOWS__
 static inline int
 wcwidth(wchar_t c)
 { return 1;			/* TBD: double-width Unicode chars */

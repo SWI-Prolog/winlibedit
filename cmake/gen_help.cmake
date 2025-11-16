@@ -1,0 +1,53 @@
+# cmake/gen_help.cmake  — baseline that worked but missed ed_* (your request)
+
+if(NOT DEFINED OUTPUT)
+  message(FATAL_ERROR "gen_help.cmake: OUTPUT not set")
+endif()
+if(NOT DEFINED INPUTS)
+  message(FATAL_ERROR "gen_help.cmake: INPUTS not set")
+endif()
+
+file(WRITE "${OUTPUT}" "/* Automatically generated file, do not edit */\n")
+file(APPEND "${OUTPUT}" "static const struct el_bindings_t el_func_help[] = {\n")
+
+foreach(src IN LISTS INPUTS)
+  file(STRINGS "${src}" lines)
+  string(REPLACE "^" "^!" lines "${lines}")
+  string(REPLACE "[" "^a" lines "${lines}")
+  string(REPLACE "]" "^b" lines "${lines}")
+
+  set(waiting FALSE)
+  set(fname "")
+  set(uname "")
+  set(fname_disp "")
+
+  foreach(line IN LISTS lines)
+    # Match comment header like "/* {vi,em,ed}_*():"
+    string(REPLACE "^b" "]" line "${line}")
+    string(REPLACE "^a" "[" line "${line}")
+    string(REPLACE "^!" "^" line "${line}")
+    if(line MATCHES "/\\* *([A-Za-z0-9_]+)\\(\\):")
+      set(fname "${CMAKE_MATCH_1}")
+      string(SUBSTRING "${fname}" 0 2 prefix)
+      if(prefix STREQUAL "vi" OR prefix STREQUAL "em" OR prefix STREQUAL "ed")
+        string(TOUPPER "${fname}" uname)
+        string(REPLACE "_" "-" fname_disp "${fname}")
+        set(waiting TRUE)
+      else()
+        set(waiting FALSE)
+      endif()
+      continue()
+    endif()
+
+    # Take the first description line after the header
+    if(waiting AND line MATCHES "^ *\\*")
+      string(REGEX REPLACE "^ *\\* *" "" desc "${line}")
+      string(STRIP "${desc}" desc)
+      file(APPEND "${OUTPUT}" "    { L\"${fname_disp}\",              ${uname},                \n")
+      file(APPEND "${OUTPUT}" "      L\"${desc}\" },\n")
+      set(waiting FALSE)
+    endif()
+  endforeach()
+endforeach()
+
+file(APPEND "${OUTPUT}" "};\n")

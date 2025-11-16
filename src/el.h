@@ -59,7 +59,7 @@
 #define	NO_RESET	0x080
 #define	FIXIO		0x100
 #define	FROM_ELLINE	0x200
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 #define EPILOG		0x400	/* SWI-Prolog Epilog: I/O on pipes. */
 #endif
 
@@ -109,7 +109,7 @@ typedef struct el_state_t {
 #include "hist.h"
 #include "map.h"
 #include "sig.h"
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 #include <windows.h>
 #define BUFFER_SIZE 1024
 #endif
@@ -118,7 +118,7 @@ struct el_read_t;
 
 struct editline {
 	wchar_t		 *el_prog;	/* the program name		*/
-#if __MINGW64__
+#if __WINDOWS__
 	HANDLE		 *el_hIn;
 	HANDLE		 *el_hOut;
 	HANDLE		 *el_hErr;
@@ -127,7 +127,7 @@ struct editline {
     size_t len;
   } out_buffer;
 #endif
-#ifndef __MINGW64__
+#ifndef __WINDOWS__
 	FILE		 *el_infile;	/* Stdio stuff			*/
 	FILE		 *el_outfile;	/* Stdio stuff			*/
 	FILE		 *el_errfile;	/* Stdio stuff			*/
@@ -162,7 +162,7 @@ struct editline {
 };
 
 libedit_private int	el_editmode(EditLine *, int, const wchar_t **);
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 libedit_private EditLine *el_init_internal(
   const char *prog,
   HANDLE fin, HANDLE fout, HANDLE ferr,

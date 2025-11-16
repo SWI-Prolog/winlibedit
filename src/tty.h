@@ -40,7 +40,11 @@
 #ifndef _h_el_tty
 #define	_h_el_tty
 
+#if __WINDOWS__
+#include "win_termios.h"
+#else
 #include <termios.h>
+#endif
 #include <unistd.h>
 
 /* Define our own since everyone gets it wrong! */

@@ -50,7 +50,11 @@ __RCSID("$NetBSD: tty.c,v 1.70 2021/07/14 07:47:23 christos Exp $");
 #include <string.h>
 #include <strings.h>	/* for ffs */
 #include <unistd.h>	/* for isatty */
+#if __WINDOWS__
+#include "win_ncurses.h"
+#else
 #include <ncurses.h>
+#endif
 
 #include "el.h"
 #include "fcns.h"
@@ -474,7 +478,7 @@ static void	tty_setup_flags(EditLine *, struct termios *, int);
 static int
 tty_getty(EditLine *el, struct termios *t)
 {
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	return tcgetattr(el->el_hIn, t);
 #else
 	int rv;
@@ -490,7 +494,7 @@ tty_getty(EditLine *el, struct termios *t)
 static int
 tty_setty(EditLine *el, int action, const struct termios *t)
 {
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	if ( el->el_flags & EPILOG )
 		return 0;
 	return tcsetattr(el->el_hIn, action, t);
@@ -516,7 +520,7 @@ tty_setup(EditLine *el)
 	if (el->el_tty.t_initialized)
 		return -1;
 
-#ifdef __MINGW64__
+#ifdef __WINDOWS__
 	if ( !(el->el_flags&EPILOG) && !isconsole(el->el_hOut)) {
 #else
 	if (!isatty(el->el_outfd)) {
