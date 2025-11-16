@@ -156,10 +156,11 @@ set_target_properties(edit PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_dependencies(edit generate_headers)
 
 target_include_directories(edit
-    PUBLIC
+    BEFORE
+    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/..
         ${CMAKE_CURRENT_SOURCE_DIR}/editline
 )
 
