@@ -232,6 +232,10 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+#if defined(_MSC_VER) || defined(__MINGW64__)
+#define __WINDOWS__ 1
+#endif
+
 /* Define to 1 if all of the C89 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
    backward compatibility; new code need not use it. */

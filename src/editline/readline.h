@@ -31,7 +31,7 @@
 #ifndef _READLINE_H_
 #define _READLINE_H_
 
-#if defined(_MSC_VER) || defined(___MINGW64__)
+#if defined(_MSC_VER) || defined(__MINGW64__)
 #define __WINDOWS__ 1
 #endif
 

@@ -8,13 +8,13 @@
 # Use libtool (glibtool on OSX) to debug:
 #
 #    libtool --mode=execute gdb examples/tc1
-# 
+#
 # Run valgrind like this, but note
 # http://invisible-island.net/ncurses/ncurses.faq.html#config_leaks.
 #
 #    libtool --mode=execute valgrind --leak-check=full examples/tc1
 #
-# A valgrind suppressions file for ncurses is available at 
+# A valgrind suppressions file for ncurses is available at
 # http://www.opensource.apple.com/source/ncurses/ncurses-27/ncurses/misc/ncurses.supp
 #
 #    libtool --mode=execute valgrind --suppressions=ncurses.supp.txt --leak-check=full examples/tc1
@@ -45,15 +45,22 @@ AC_PROG_LN_S
 AC_PROG_AWK
 EL_MANTYPE
 
-AC_CHECK_LIB(ncurses, tgetent,,
-  [AC_CHECK_LIB(curses, tgetent,,
-    [AC_CHECK_LIB(termcap, tgetent,,
-      [AC_CHECK_LIB(tinfo, tgetent,,
-dnl       [AC_MSG_ERROR([libncurses, libcurses, libtermcap or libtinfo is required!])]
+case "$host" in
+  *mingw* | *cygwin* | *msys*)
+    AC_MSG_NOTICE([Skipping curses library checks on Windows])
+    ;;
+  *)
+    AC_CHECK_LIB(ncurses, tgetent,,
+      [AC_CHECK_LIB(curses, tgetent,,
+        [AC_CHECK_LIB(termcap, tgetent,,
+          [AC_CHECK_LIB(tinfo, tgetent,,
+dnl           [AC_MSG_ERROR([libncurses, libcurses, libtermcap or libtinfo is required!])]
+          )]
+        )]
       )]
-    )]
-  )]
-)
+    )
+    ;;
+esac
 
 ### deprecate option --enable-widec to turn on use of wide-character support
 EL_DEPRECATE_WIDEC
@@ -75,15 +82,21 @@ AC_PROG_EGREP
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h limits.h malloc.h stdlib.h string.h sys/ioctl.h sys/param.h unistd.h curses.h ncurses.h sys/cdefs.h termcap.h])
 
-AC_CHECK_HEADER([ncurses.h], [],
-  [AC_CHECK_HEADER([curses.h], [],
-    [AC_CHECK_HEADER([termcap.h], [],
-      [AC_MSG_ERROR([ncurses.h, curses.h, or termcap.h is required!])],
+case "$host" in
+  *mingw* | *cygwin* | *msys*)
+    AC_MSG_NOTICE([Skipping curses library checks on Windows])
+    ;;
+  *)
+  AC_CHECK_HEADER([ncurses.h], [],
+    [AC_CHECK_HEADER([curses.h], [],
+      [AC_CHECK_HEADER([termcap.h], [],
+	[AC_MSG_ERROR([ncurses.h, curses.h, or termcap.h is required!])],
+      [])],
     [])],
-  [])],
-[])
-
-AC_CHECK_HEADER([termios.h], [], [AC_MSG_ERROR([termios.h is required!])], [])
+  [])
+  AC_CHECK_HEADER([termios.h], [], [AC_MSG_ERROR([termios.h is required!])], [])
+  ;;
+esac
 
 ## include curses.h to prevent "Present But Cannot Be Compiled"
 AC_CHECK_HEADERS([term.h],,,
