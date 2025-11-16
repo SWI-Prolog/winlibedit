@@ -696,9 +696,8 @@ void
 el_resize(EditLine *el)
 {
 	int lins, cols;
-	sigset_t oset, nset;
-
 #if !__WINDOWS__
+	sigset_t oset, nset;
 	(void) sigemptyset(&nset);
 	(void) sigaddset(&nset, SIGWINCH);
 	(void) sigprocmask(SIG_BLOCK, &nset, &oset);

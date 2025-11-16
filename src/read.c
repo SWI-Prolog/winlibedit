@@ -73,7 +73,9 @@ struct el_read_t {
 	int		 read_errno;
 };
 
+#if !__WINDOWS__
 static int	read__fixio(int, int);
+#endif
 static int	read_char(EditLine *, wchar_t *);
 static int	read_getcmd(EditLine *, el_action_t *, wchar_t *);
 static void	read_clearmacros(struct macros *);
@@ -143,6 +145,7 @@ el_read_getfn(struct el_read_t *el_read)
 }
 
 
+#ifndef __WINDOWS__
 /* read__fixio():
  *	Try to recover from a read error
  */
@@ -150,9 +153,6 @@ el_read_getfn(struct el_read_t *el_read)
 static int
 read__fixio(int fd __attribute__((__unused__)), int e)
 {
-#ifdef __WINDOWS__
-  return -1;
-#else
 	switch (e) {
 	case -1:		/* Make sure that the code is reachable */
 
@@ -204,8 +204,8 @@ read__fixio(int fd __attribute__((__unused__)), int e)
 	default:
 		return -1;
 	}
-#endif
 }
+#endif/*__WINDOWS__*/
 
 
 /* el_push():
@@ -292,7 +292,7 @@ read_char(EditLine *el, wchar_t *cp)
 			 1,
 			 &done,
 			 NULL);
-  if ( done )
+  if ( rc && done )
   { *cp = ((wchar_t*)buffer)[0];
     return 1;
   } else

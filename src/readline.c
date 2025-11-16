@@ -2276,7 +2276,7 @@ static int
 _rl_event_read_char(EditLine *el, wchar_t *wc)
 {
 	char	ch;
-	int	n;
+	int	n = 0;
 	ssize_t num_read = 0;
 
 	ch = '\0';
@@ -2317,6 +2317,7 @@ _rl_event_read_char(EditLine *el, wchar_t *wc)
 			continue;
 		break;
 	}
+	(void)n;
 	if (!rl_event_hook)
 		el_set(el, EL_GETCFN, EL_BUILTIN_GETCFN);
 	*wc = (wchar_t)ch;

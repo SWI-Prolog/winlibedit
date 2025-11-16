@@ -223,13 +223,17 @@ static void	terminal_alloc(EditLine *, const struct termcapstr *,
     const char *);
 static void	terminal_init_arrow(EditLine *);
 static void	terminal_reset_arrow(EditLine *);
+#if !__WINDOWS__
 static int	terminal_putc(int);
+#endif
 static void	terminal_tputs(EditLine *, const char *, int);
 
+#if !__WINDOWS__
 #ifdef _REENTRANT
 static pthread_mutex_t terminal_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 static FILE *terminal_outfile = NULL;
+#endif
 
 
 /* terminal_setflags():
@@ -1231,6 +1235,7 @@ terminal_bind_arrow(EditLine *el)
 	}
 }
 
+#ifndef __WINDOWS__
 /* terminal_putc():
  *	Add a character
  */
@@ -1241,6 +1246,7 @@ terminal_putc(int c)
 		return -1;
 	return fputc(c, terminal_outfile);
 }
+#endif /*__WINDOWS__*/
 
 static void
 terminal_tputs(EditLine *el, const char *cap, int affcnt)
@@ -1294,7 +1300,7 @@ terminal__putc(EditLine *el, wint_t c)
 static bool
 is_all_ascii(const char *buf, size_t len)
 { for(size_t i=0; i<len; i++)
-  { if ( buf[i]&0xff > 127 )
+  { if ( (buf[i]&0xff) > 127 )
       return false;
   }
 
@@ -1780,7 +1786,6 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
   va_start(args, fmt);
 #if __WINDOWS__
   char buf[BUFFER_SIZE];
-  HANDLE out;
 
   int len = vsnprintf(buf, sizeof(buf)-1, fmt, args);
   assert(len < sizeof(buf));	/* TODO: create larger buffer */

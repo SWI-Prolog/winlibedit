@@ -15,6 +15,7 @@ tcenablecolor(HANDLE hOut)
 { DWORD dwMode = 0;
   GetConsoleMode(hOut, &dwMode);
   SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+  return 0;
 }
 
 int
@@ -114,7 +115,6 @@ tgoto(const char *cap, int col, int row)
 { static char buf[128];
   char *p = buf;
   int p1 = col, p2 = row;
-  int incr = 0;
 
   const char *c = cap;
   while (*c && (p - buf) < (int)sizeof(buf) - 16)

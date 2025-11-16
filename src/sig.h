@@ -97,20 +97,20 @@ sigaddset(sigset_t *set, int signo)
 #define SIG_BLOCK   0
 #define SIG_SETMASK 2
 
-static int
+static inline int
 sigprocmask(int how, sigset_t *nset, sigset_t *oset)
 { return 0;
 }
 
 #define SA_ONSTACK 0
 
-static int
+static inline int
 sigaction(int signo, struct sigaction *act,
                      struct sigaction *oldact)
 { return 0;
 }
 
-static int
+static inline int
 kill(pid_t pid, int sig)
 { return 0;
 }
