@@ -10,7 +10,10 @@ endif()
 
 set(all_names)
 
-foreach(hdr IN LISTS INPUTS)
+string(REPLACE "\\" "" INPUTS "${INPUTS}")
+separate_arguments(INPUTS)
+
+foreach(hdr ${INPUTS})
   file(READ "${hdr}" txt)
 
   # Normalize whitespace and strip block comments (headers should be clean already,

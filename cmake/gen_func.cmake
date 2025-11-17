@@ -13,8 +13,10 @@ file(APPEND "${OUTPUT}" "static const el_func_t el_func[] = {\n")
 
 set(funcs "")
 
-# Collect function names from each header
-foreach(hdr IN LISTS INPUTS)
+string(REPLACE "\\" "" INPUTS "${INPUTS}")
+separate_arguments(INPUTS)
+
+foreach(hdr ${INPUTS})
   file(READ "${hdr}" txt)
   # Strip comments and condense whitespace
   string(REGEX REPLACE "/\\*[^*]*\\*+([^/*][^*]*\\*+)*/" "" txt "${txt}")

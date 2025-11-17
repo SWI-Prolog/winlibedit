@@ -1,4 +1,4 @@
-# cmake/gen_help.cmake  — baseline that worked but missed ed_* (your request)
+# cmake/gen_help.cmake
 
 if(NOT DEFINED OUTPUT)
   message(FATAL_ERROR "gen_help.cmake: OUTPUT not set")
@@ -10,7 +10,10 @@ endif()
 file(WRITE "${OUTPUT}" "/* Automatically generated file, do not edit */\n")
 file(APPEND "${OUTPUT}" "static const struct el_bindings_t el_func_help[] = {\n")
 
-foreach(src IN LISTS INPUTS)
+string(REPLACE "\\" "" INPUTS "${INPUTS}")
+separate_arguments(INPUTS)
+
+foreach(src ${INPUTS})
   file(STRINGS "${src}" lines)
   string(REPLACE "^" "^!" lines "${lines}")
   string(REPLACE "[" "^a" lines "${lines}")
