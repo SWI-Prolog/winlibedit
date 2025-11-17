@@ -13,6 +13,7 @@
 #cmakedefine HAVE_GETPW_R_POSIX @HAVE_GETPW_R_POSIX@
 #cmakedefine HAVE_ISASCII @HAVE_ISASCII@
 #cmakedefine HAVE_SECURE_GETENV @HAVE_SECURE_GETENV@
+#cmakedefine HAVE_WCSDUP @HAVE_WCSDUP@
 
 #cmakedefine HAVE_STDINT_H @HAVE_STDINT_H@
 #cmakedefine HAVE_WCHAR_H @HAVE_WCHAR_H@
@@ -27,6 +28,9 @@
 #cmakedefine HAVE_SYS_WAIT_H @HAVE_SYS_WAIT_H@
 #cmakedefine HAVE_PWD_H @HAVE_PWD_H@
 #cmakedefine HAVE_IOCTL_H @HAVE_IOCTL_H@
+#cmakedefine HAVE_UNISTD_H @HAVE_UNISTD_H@
+#cmakedefine HAVE_SYS_PARAM_H @HAVE_SYS_PARAM_H@
+#cmakedefine HAVE_STRINGS_H @HAVE_STRINGS_H@
 
 /* Define if building on Windows */
 #cmakedefine _WIN32 @WIN32@
@@ -36,8 +40,16 @@
 
 /* Prevent redeclarations of standard C functions on Windows */
 #ifdef _MSC_VER
+#ifndef _CRT_SECURE_NO_WARNINGS
 # define _CRT_SECURE_NO_WARNINGS
+#endif
+#ifndef _CRT_NONSTDC_NO_WARNINGS
 # define _CRT_NONSTDC_NO_WARNINGS
+#endif
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+typedef int pid_t;
+#define strcasecmp(s1,s2) _stricmp(s1,s2)
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
