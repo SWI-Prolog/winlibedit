@@ -50,7 +50,9 @@ __RCSID("$NetBSD: readline.c,v 1.183 2025/06/14 13:43:50 christos Exp $");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <vis.h>
 
 #define completion_matches xxx_completion_matches

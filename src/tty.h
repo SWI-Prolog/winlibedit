@@ -45,7 +45,9 @@
 #else
 #include <termios.h>
 #endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 /* Define our own since everyone gets it wrong! */
 #define	CONTROL(A)	((A) & 037)

@@ -51,7 +51,9 @@ __RCSID("$NetBSD: vi.c,v 1.64 2021/08/28 17:17:47 christos Exp $");
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "el.h"
 #include "common.h"

@@ -47,7 +47,9 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "el.h"
 

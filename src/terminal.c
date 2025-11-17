@@ -55,7 +55,9 @@ __RCSID("$NetBSD: terminal.c,v 1.46 2023/02/04 14:34:28 christos Exp $");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <assert.h>
 #ifdef HAVE_TERMCAP_H
 #include <termcap.h>
@@ -1312,9 +1314,9 @@ is_all_ascii(const char *buf, size_t len)
 static bool
 el_write_buffer(EditLine *el, HANDLE hOut, const char *buf, size_t len)
 { if ( el->el_flags & EPILOG )
-  { return WriteFile(hOut, buf, len, NULL, NULL);
+  { return WriteFile(hOut, buf, (DWORD)len, NULL, NULL);
   } else if ( is_all_ascii(buf, len) )
-  { return WriteConsoleA(hOut, buf, len, NULL, NULL);
+  { return WriteConsoleA(hOut, buf, (DWORD)len, NULL, NULL);
   } else
   { wchar_t wbuf[WBUF_SIZE];
     wchar_t *ws = wbuf;
@@ -1328,13 +1330,13 @@ el_write_buffer(EditLine *el, HANDLE hOut, const char *buf, size_t len)
       s = utf8_get_char(s, &chr);
       ws = put_wchar(ws, chr);
       if ( ws > we-2 )
-      { if ( !WriteConsoleW(hOut, wbuf, ws-wbuf, NULL, NULL) )
+      { if ( !WriteConsoleW(hOut, wbuf, (DWORD)(ws-wbuf), NULL, NULL) )
 	  return false;
 	ws = wbuf;
       }
     }
 
-    return WriteConsoleW(hOut, wbuf, ws-wbuf, NULL, NULL);
+    return WriteConsoleW(hOut, wbuf, (DWORD)(ws-wbuf), NULL, NULL);
   }
 }
 #endif

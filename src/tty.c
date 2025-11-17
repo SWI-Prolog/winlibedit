@@ -48,8 +48,12 @@ __RCSID("$NetBSD: tty.c,v 1.70 2021/07/14 07:47:23 christos Exp $");
 #include <errno.h>
 #include <stdlib.h>	/* for abort */
 #include <string.h>
+#ifdef HAVE_STRINGS_H
 #include <strings.h>	/* for ffs */
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>	/* for isatty */
+#endif
 #if __WINDOWS__
 #include "win_ncurses.h"
 #else

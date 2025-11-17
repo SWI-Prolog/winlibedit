@@ -49,7 +49,9 @@ __RCSID("$NetBSD: el.c,v 1.102 2025/01/03 00:40:08 rillig Exp $");
  * el.c: EditLine interface functions
  */
 #include <sys/types.h>
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include <ctype.h>
 #ifdef HAVE_LANGINFO_H
 #include <langinfo.h>

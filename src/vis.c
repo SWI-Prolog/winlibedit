@@ -64,7 +64,9 @@ __RCSID("$NetBSD: vis.c,v 1.88 2024/03/17 21:48:02 andvar Exp $");
 __FBSDID("$FreeBSD$");
 #endif
 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include <sys/types.h>
 
 #include <stdint.h>

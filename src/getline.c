@@ -39,7 +39,12 @@
 #ifndef HAVE_NBTOOL_CONFIG_H
 /* These headers are required, but included from nbtool_config.h */
 #include <stdio.h>
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #endif

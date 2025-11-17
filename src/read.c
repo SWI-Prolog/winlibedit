@@ -50,7 +50,9 @@ __RCSID("$NetBSD: read.c,v 1.109 2025/01/03 00:40:08 rillig Exp $");
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #ifdef __WINDOWS__
 #include <windows.h>
 #endif

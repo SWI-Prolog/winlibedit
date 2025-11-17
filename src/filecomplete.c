@@ -47,7 +47,9 @@ __RCSID("$NetBSD: filecomplete.c,v 1.73 2023/04/25 17:51:32 christos Exp $");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "el.h"
 #include "filecomplete.h"
@@ -443,6 +445,10 @@ fn_filename_completion_function(const char *text, int state)
 	return temp;
 }
 
+
+#ifdef _MSC_VER
+#  define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
+#endif
 
 static const char *
 append_char_function(const char *name)

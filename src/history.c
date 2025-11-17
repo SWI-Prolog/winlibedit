@@ -53,6 +53,18 @@ __RCSID("$NetBSD: history.c,v 1.64 2024/07/11 05:41:24 kre Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <vis.h>
+#ifdef _MSC_VER
+#  include <io.h>
+#  include <fcntl.h>
+#  include <sys/stat.h>
+#  define open  _open
+#  define fdopen _fdopen
+#  define O_WRONLY _O_WRONLY
+#  define O_CREAT  _O_CREAT
+#  define O_TRUNC  _O_TRUNC
+#  define S_IRUSR  _S_IREAD
+#  define S_IWUSR  _S_IWRITE
+#endif
 
 static const char hist_cookie[] = "_HiStOrY_V2_\n";
 
@@ -430,7 +442,7 @@ history_def_add(void *p, TYPE(HistEvent) *ev, const Char *str)
 		return -1;
 	}
 	memcpy(s, evp->str, elen * sizeof(*s));
-	memcpy(s + elen, str, slen * sizeof(*s)); 
+	memcpy(s + elen, str, slen * sizeof(*s));
         s[len - 1] = '\0';
 	h_free(evp->str);
 	evp->str = s;

@@ -138,4 +138,53 @@ extern char* tgoto(const char*, int, int);
 extern char* tgetstr(char*, char**);
 #endif
 
+#ifdef _MSC_VER
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+/* --- mkstemp ---------------------------------------------------------- */
+/* Create a temporary file from a template like "/tmp/fileXXXXXX". */
+static inline int mkstemp(char *template)
+{
+    char *p = strrchr(template, '/');
+    if (!p)
+        p = template;
+    else
+        p++;
+
+    /* Replace XXXXXX with a unique name using _mktemp_s */
+    if (_mktemp_s(p, strlen(p) + 1) != 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    int fd = _open(template, _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY,
+                   _S_IREAD | _S_IWRITE);
+    if (fd == -1)
+        errno = GetLastError();
+    return fd;
+}
+
+/* --- fseeko / ftello -------------------------------------------------- */
+/* Use 64-bit equivalents for large-file support */
+#define fseeko(stream, offset, whence) _fseeki64((stream), (__int64)(offset), (whence))
+#define ftello(stream)                 (off_t)_ftelli64(stream)
+
+/* --- ftruncate -------------------------------------------------------- */
+static inline int ftruncate(int fd, off_t length)
+{
+    if (_chsize_s(fd, (size_t)length) != 0)
+        return -1;
+    return 0;
+}
+
+#endif /* _MSC_VER */
+
 #endif /* _h_sys */

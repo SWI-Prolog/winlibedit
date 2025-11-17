@@ -64,7 +64,7 @@
 	(*(in) & 0x80 ? F_UTF8_GET_CHAR(in, chr) \
 		      : (*(chr) = *(in), (char *)(in)+1))
 #define utf8_put_char(out, chr) \
-	(chr < 0x80 ? out[0]=chr, out+1 : F_UTF8_PUT_CHAR(out, chr))
+	(chr < 0x80 ? out[0]=(char)chr, out+1 : F_UTF8_PUT_CHAR(out, chr))
 #define libedit_utf8_strlen(s, len) F_UTF8_STRLEN(s, len)
 #define libedit_utf8_enclenW(s, len) F_UTF8_ENCLENW(s, len)
 #define libedit_utf8_enclenA(s, len) F_UTF8_ENCLENA(s, len)
