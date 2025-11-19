@@ -234,7 +234,8 @@ ct_encode_char(char *dst, size_t len, wchar_t c)
 	l = wctomb(dst, c);
 
 	if (l < 0) {
-		wctomb(NULL, L'\0');
+		ssize_t l2 = wctomb(NULL, L'\0');
+		(void)l2;
 		l = 0;
 	}
 	return l;

@@ -1038,8 +1038,9 @@ vi_histedit(EditLine *el, wint_t c __attribute__((__unused__)))
 	wcstombs(cp, line, TMP_BUFSIZ - 1);
 	cp[TMP_BUFSIZ - 1] = '\0';
 	len = strlen(cp);
-	write(fd, cp, len);
-	write(fd, "\n", (size_t)1);
+	if ( write(fd, cp, len) != len ||
+	     write(fd, "\n", (size_t)1) != 1 )
+		goto error;
 	pid = fork();
 	switch (pid) {
 	case -1:
