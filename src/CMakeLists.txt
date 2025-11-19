@@ -94,7 +94,7 @@ add_custom_target(generate_headers DEPENDS ${GENERATED_HEADERS})
 set(LIBEDIT_SOURCES
     chared.c common.c el.c eln.c emacs.c hist.c keymacro.c map.c chartype.c parse.c
     prompt.c read.c refresh.c search.c sig.c terminal.c tty.c vi.c
-    reallocarr.c wcsdup.c tokenizer.c tokenizern.c
+    reallocarr.c tokenizer.c tokenizern.c
     history.c historyn.c filecomplete.c readline.c chared.h literal.c
     el.h hist.h histedit.h keymacro.h map.h chartype.h parse.h prompt.h
     read.h refresh.h search.h sig.h sys.h terminal.h tty.h vis.h
@@ -175,6 +175,9 @@ if(NOT HAVE_VIS)
 endif()
 if(NOT HAVE_UNVIS)
     list(APPEND LIBEDIT_SOURCES unvis.c)
+endif()
+if(NOT HAVE_WCSDUP)
+    list(APPEND LIBEDIT_SOURCES wcsdup.c)
 endif()
 
 # -------------------------------------------------------------------------
