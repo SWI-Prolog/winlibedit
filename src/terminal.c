@@ -1784,12 +1784,13 @@ terminal_echotc(EditLine *el, int argc __attribute__((__unused__)),
 libedit_private int
 el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
 { va_list args;
+  int len;
 
   va_start(args, fmt);
 #if __WINDOWS__
   char buf[BUFFER_SIZE];
 
-  int len = vsnprintf(buf, sizeof(buf)-1, fmt, args);
+  len = vsnprintf(buf, sizeof(buf)-1, fmt, args);
   assert(len < sizeof(buf));	/* TODO: create larger buffer */
 
   if ( to == EL_PTR_OUT )
@@ -1800,8 +1801,6 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
   } else
   { el_write_buffer(el, el->el_hErr, buf, len);
   }
-
-  return len;
 #else
   FILE *out;
 
@@ -1810,7 +1809,9 @@ el_printf(EditLine *el, el_prt_stream to, const char *fmt, ...)
   else
     out = el->el_errfile;
 
-  return vfprintf(out, fmt, args);
+  len = vfprintf(out, fmt, args);
 #endif
   va_end(args);
+
+  return len;
 }
