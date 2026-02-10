@@ -186,6 +186,9 @@ endif()
 add_library(edit ${LIBEDIT_SOURCES} ${GENERATED_HEADERS})
 target_link_libraries(edit PUBLIC ${TERMCAP_LIB})
 set_target_properties(edit PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(MSVC)
+  target_compile_options(edit PRIVATE /MD)
+endif()
 add_dependencies(edit generate_headers)
 
 target_include_directories(edit
