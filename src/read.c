@@ -369,7 +369,7 @@ read_char(EditLine *el, wchar_t *cp)
 			goto again;
 		default:
 			/* Valid character, process it. */
-			fprintf(stderr, "Got %d\n", *cp);
+			fprintf(stderr, "Got %d\n", (int)*cp);
 			if ( *cp == '\r' ) *cp = '\n';
 			return 1;
 		}
