@@ -366,6 +366,13 @@ ct_chr_class(wchar_t c)
 		return CHTYPE_ASCIICTL;
 	else if (iswprint(c))
 		return CHTYPE_PRINT;
+	/* iswprint() under the MSVC runtime is locale-limited and rejects
+	 * combining marks (wcwidth == 0, not a control char), so NFD input
+	 * like 'a'+U+0300 renders the combiner as "\U+0300" on Windows.
+	 * Classify such code points as printable so they pass through
+	 * unchanged and the terminal attaches them to the preceding base. */
+	else if (!iswcntrl(c) && wcwidth(c) == 0)
+		return CHTYPE_PRINT;
 	else
 		return CHTYPE_NONPRINT;
 }

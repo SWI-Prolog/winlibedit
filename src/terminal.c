@@ -90,6 +90,7 @@ extern char* tgetstr(char*, char**);
 
 #include "el.h"
 #include "fcns.h"
+#include "mk_wcwidth.h"
 #include <stdbool.h>
 
 /*
@@ -595,15 +596,69 @@ mc_again:
 				/*
 				 * it's usually cheaper to just write the
 				 * chars, so we do.
+				 *
+				 * el_cursor.h is a visual-column count, but
+				 * el_display[] is indexed by code-point slot.
+				 * With NFD Unicode these diverge: a combining
+				 * mark occupies a slot but advances no columns.
+				 * First convert the current visual column back
+				 * to a code-point index, then walk grapheme
+				 * clusters (base char + combining marks) to
+				 * reach the target visual column `where'.
 				 */
-				/*
-				 * NOTE THAT terminal_overwrite() WILL CHANGE
-				 * el->el_cursor.h!!!
-				 */
-				terminal_overwrite(el,
-				    (wchar_t *)&el->el_display[
-				    el->el_cursor.v][el->el_cursor.h],
-				    (size_t)(where - el->el_cursor.h));
+				{
+					const wint_t *line =
+					    el->el_display[el->el_cursor.v];
+					int vis = 0;
+					int idx = 0;
+					int w;
+
+					/* Convert el_cursor.h (visual col) to
+					 * a code-point index by scanning from
+					 * the start of the line. */
+					while (vis < el->el_cursor.h &&
+					    idx < el->el_terminal.t_size.h &&
+					    line[idx] != L'\0') {
+						w = wcwidth((wchar_t)line[idx]);
+						if (w < 0) w = 1;
+						vis += w;
+						idx++;
+						/* also skip the base char's
+						 * combining marks */
+						if (w > 0) {
+							while (idx <
+							    el->el_terminal.t_size.h
+							    && line[idx] != L'\0' &&
+							    wcwidth((wchar_t)line[idx])
+							    == 0)
+								idx++;
+						}
+					}
+
+					/* Write grapheme clusters from
+					 * (vis,idx) forward until we reach
+					 * visual column `where'. */
+					while (vis < where &&
+					    idx < el->el_terminal.t_size.h &&
+					    line[idx] != L'\0') {
+						w = wcwidth((wchar_t)line[idx]);
+						if (w <= 0) { idx++; continue; }
+						terminal__putc(el,
+						    (wchar_t)line[idx++]);
+						vis += w;
+						/* write the cluster's combining
+						 * marks without advancing vis */
+						while (idx <
+						    el->el_terminal.t_size.h &&
+						    line[idx] != L'\0' &&
+						    wcwidth((wchar_t)line[idx])
+						    == 0)
+							terminal__putc(el,
+							    (wchar_t)line[idx++]);
+					}
+					/* el_cursor.h corrected to `where'
+					 * below */
+				}
 
 			}
 		} else {	/* del < 0 := moving backward */
@@ -653,8 +708,13 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 
         do {
                 /* terminal__putc() ignores any MB_FILL_CHARs */
-                terminal__putc(el, *cp++);
-                el->el_cursor.h++;
+                wchar_t _c = *cp++;
+                int _w = wcwidth(_c);
+                terminal__putc(el, _c);
+                /* Combining marks (w==0) and MB_FILL_CHARs (w==0) do not
+                 * advance the visual cursor; double-wide chars advance by 2. */
+                if (_w > 0)
+                        el->el_cursor.h += _w;
         } while (--n);
 
 	if (el->el_cursor.h >= el->el_terminal.t_size.h) {	/* wrap? */
@@ -757,10 +817,12 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 	if (GoodStr(T_im) && GoodStr(T_ei)) {	/* if I have insert mode */
 		terminal_tputs(el, Str(T_im), 1);
 
-		el->el_cursor.h += num;
-		do
+		do {
+			int _w = wcwidth(*cp);
 			terminal__putc(el, *cp++);
-		while (--num);
+			if (_w > 0)
+				el->el_cursor.h += _w;
+		} while (--num);
 
 		if (GoodStr(T_ip))	/* have to make num chars insert */
 			terminal_tputs(el, Str(T_ip), 1);
@@ -772,9 +834,12 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 		if (GoodStr(T_ic))	/* have to make num chars insert */
 			terminal_tputs(el, Str(T_ic), 1);
 
-		terminal__putc(el, *cp++);
-
-		el->el_cursor.h++;
+		{
+			int _w = wcwidth(*cp);
+			terminal__putc(el, *cp++);
+			if (_w > 0)
+				el->el_cursor.h += _w;
+		}
 
 		if (GoodStr(T_ip))	/* have to make num chars insert */
 			terminal_tputs(el, Str(T_ip), 1);

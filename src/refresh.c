@@ -56,6 +56,7 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);
+static int	display_vcol(const wchar_t *, int);
 static void	re_update_line(EditLine *, wchar_t *, wchar_t *, int);
 static void	re_insert (EditLine *, wchar_t *, int, int, wchar_t *, int);
 static void	re_delete(EditLine *, wchar_t *, int, int, int);
@@ -63,6 +64,7 @@ static void	re_fastputc(EditLine *, wint_t);
 static void	re_clear_eol(EditLine *, int, int, int);
 static void	re__strncopy(wchar_t *, wchar_t *, size_t);
 static void	re__copy_and_pad(wchar_t *, const wchar_t *, size_t);
+static void	re_overwrite_nc(EditLine *, wchar_t *, size_t);
 
 #ifdef DEBUG_REFRESH
 static void	re_printstr(EditLine *, const char *, wchar_t *, wchar_t *);
@@ -217,7 +219,7 @@ re_putc(EditLine *el, wint_t c, int shift)
 	if (!shift)
 		return;
 
-	cur->h += w;		/* advance to next place (0 for combining) */
+	cur->h += w ? w : 1;	/* advance to next place */
 	if (cur->h >= sizeh) {
 		/* assure end of line */
 		el->el_vdisplay[cur->v][sizeh] = '\0';
@@ -305,6 +307,10 @@ re_refresh(EditLine *el)
 		re_addc(el, *cp);
 	}
 
+	/* Null-terminate the current vdisplay row to prevent stale content
+	 * from a previous render from confusing re_update_line's scan. */
+	el->el_vdisplay[el->el_refresh.r_cursor.v][el->el_refresh.r_cursor.h] = '\0';
+
 	if (cur.h == -1) {	/* if I haven't been set yet, I'm at the end */
 		cur.h = el->el_refresh.r_cursor.h;
 		cur.v = el->el_refresh.r_cursor.v;
@@ -329,6 +335,17 @@ re_refresh(EditLine *el)
 	re_putc(el, '\0', 0);	/* make line ended with NUL, no cursor shift */
 
 	el->el_refresh.r_newcv = el->el_refresh.r_cursor.v;
+
+	/*
+	 * re_update_line() modifies el_vdisplay in place (it inserts '\0' to
+	 * strip trailing spaces), so compute the visual cursor column from the
+	 * clean el_vdisplay *before* the update loop runs.
+	 */
+	{
+		int cur_vcol = display_vcol(
+		    (const wchar_t *)el->el_vdisplay[cur.v], cur.h);
+		cur.h = cur_vcol;   /* reuse cur.h to mean visual column now */
+	}
 
 	ELRE_DEBUG(1, __F,
 		"term.h=%d vcur.h=%d vcur.v=%d vdisplay[0]=\r\n:%80.80s:\r\n",
@@ -376,6 +393,8 @@ re_refresh(EditLine *el)
 	    el->el_refresh.r_cursor.h, el->el_refresh.r_cursor.v,
 	    cur.h, cur.v);
 	terminal_move_to_line(el, cur.v);	/* go to where the cursor is */
+	/* cur.h was converted to a visual column above, before re_update_line
+	 * could modify el_vdisplay */
 	terminal_move_to_char(el, cur.h);
 }
 
@@ -517,6 +536,45 @@ re_clear_eol(EditLine *el, int fx, int sx, int diff)
 	ELRE_DEBUG(1, __F, "re_clear_eol %d\n", diff);
 	terminal_clear_EOL(el, diff);
 }
+
+/* re_overwrite_nc():
+ *	Like terminal_overwrite but also writes any combining marks that
+ *	immediately follow the written range in the source buffer, so
+ *	that we don't leave a bare base character in the last terminal
+ *	cell of the written region.  Combining marks do not advance the
+ *	visual cursor, so el_cursor.h is not updated for them.
+ */
+static void
+re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
+{
+	wchar_t *p;
+
+	if (n == 0)
+		return;
+	terminal_overwrite(el, cp, n);
+	for (p = cp + n; *p != L'\0' && wcwidth(*p) == 0; p++)
+		terminal__putc(el, *p);
+}
+
+/*
+ * display_vcol():
+ * Convert a code-point index in a display array to a visual-column count.
+ * Combining marks (wcwidth == 0) occupy a code-point slot but no visual
+ * column; double-wide chars (wcwidth == 2) occupy two columns.
+ */
+static int
+display_vcol(const wchar_t *line, int cpidx)
+{
+	int col = 0, i;
+
+	for (i = 0; i < cpidx && line[i] != L'\0'; i++) {
+		int w = wcwidth(line[i]);
+		if (w > 0)
+			col += w;
+	}
+	return col;
+}
+
 
 /*****************************************************************
     re_update_line() is based on finding the middle difference of each line
@@ -813,8 +871,11 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		    __F, "first diff insert at %td...\r\n", nfd - new);
 		/*
 		 * Move to the first char to insert, where the first diff is.
+		 * Convert code-point index to visual column (they differ for
+		 * NFD combining characters).
 		 */
-		terminal_move_to_char(el, (int)(nfd - new));
+		terminal_move_to_char(el,
+		    display_vcol(new, (int)(nfd - new)));
 		/*
 		 * Check if we have stuff to keep at end
 		 */
@@ -835,12 +896,12 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * (nfd + fx)
 			 */
 			len = (size_t) ((nsb - nfd) - fx);
-			terminal_overwrite(el, (nfd + fx), len);
+			re_overwrite_nc(el, (nfd + fx), len);
 			re__strncopy(ofd + fx, nfd + fx, len);
 		} else {
 			ELRE_DEBUG(1, __F, "without anything to save\r\n");
 			len = (size_t)(nsb - nfd);
-			terminal_overwrite(el, nfd, len);
+			terminal_overwrite(el, nfd, len);	/* nsb==ne, no trailing combining */
 			re__strncopy(ofd, nfd, len);
 			/*
 			 * Done
@@ -853,7 +914,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		/*
 		 * move to the first char to delete where the first diff is
 		 */
-		terminal_move_to_char(el, (int)(ofd - old));
+		terminal_move_to_char(el, display_vcol(old, (int)(ofd - old)));
 		/*
 		 * Check if we have stuff to save
 		 */
@@ -864,9 +925,20 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * for code symmetry
 			 */
 			if (fx < 0) {
+				int del_vcols;
 				ELRE_DEBUG(!EL_CAN_DELETE, __F,
 				    "ERROR: cannot delete in first diff\n");
-				terminal_deletechars(el, -fx);
+				/* fx is a code-point delta; terminal_deletechars
+				 * needs a visual-column count.  For NFD Unicode,
+				 * combining marks occupy code-point slots but no
+				 * visual columns, so the two differ. */
+				del_vcols =
+				    (display_vcol(old, (int)(osb - old)) -
+				     display_vcol(old, (int)(ofd - old))) -
+				    (display_vcol(new, (int)(nsb - new)) -
+				     display_vcol(new, (int)(nfd - new)));
+				if (del_vcols > 0)
+					terminal_deletechars(el, del_vcols);
 				re_delete(el, old, (int)(ofd - old),
 				    el->el_terminal.t_size.h, -fx);
 			}
@@ -874,7 +946,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * write (nsb-nfd) chars of new starting at nfd
 			 */
 			len = (size_t) (nsb - nfd);
-			terminal_overwrite(el, nfd, len);
+			re_overwrite_nc(el, nfd, len);
 			re__strncopy(ofd, nfd, len);
 
 		} else {
@@ -883,7 +955,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			/*
 			 * write (nsb-nfd) chars of new starting at nfd
 			 */
-			terminal_overwrite(el, nfd, (size_t)(nsb - nfd));
+			re_overwrite_nc(el, nfd, (size_t)(nsb - nfd));
 			re_clear_eol(el, fx, sx,
 			    (int)((oe - old) - (ne - new)));
 			/*
@@ -904,7 +976,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		 * fx is the number of characters inserted (+) or deleted (-)
 		 */
 
-		terminal_move_to_char(el, (int)((ose - old) + fx));
+		/* old[] may have been modified by re_insert/re_delete above */
+		terminal_move_to_char(el, display_vcol(old, (int)(ose - old) + fx));
 		/*
 		 * Check if we have stuff to save
 		 */
@@ -914,18 +987,26 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * Again a duplicate test.
 			 */
 			if (sx < 0) {
+				int del_vcols;
 				ELRE_DEBUG(!EL_CAN_DELETE, __F,
 				    "ERROR: cannot delete in second diff\n");
-				terminal_deletechars(el, -sx);
+				/* same visual-column conversion as first diff */
+				del_vcols =
+				    (display_vcol(old, (int)(ols - old)) -
+				     display_vcol(old, (int)(ose - old))) -
+				    (display_vcol(new, (int)(nls - new)) -
+				     display_vcol(new, (int)(nse - new)));
+				if (del_vcols > 0)
+					terminal_deletechars(el, del_vcols);
 			}
 			/*
 			 * write (nls-nse) chars of new starting at nse
 			 */
-			terminal_overwrite(el, nse, (size_t)(nls - nse));
+			re_overwrite_nc(el, nse, (size_t)(nls - nse));
 		} else {
 			ELRE_DEBUG(1, __F,
 			    "but with nothing left to save\r\n");
-			terminal_overwrite(el, nse, (size_t)(nls - nse));
+			re_overwrite_nc(el, nse, (size_t)(nls - nse));
 			re_clear_eol(el, fx, sx,
 			    (int)((oe - old) - (ne - new)));
 		}
@@ -937,7 +1018,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		ELRE_DEBUG(1, __F, "late first diff insert at %td...\r\n",
 		    nfd - new);
 
-		terminal_move_to_char(el, (int)(nfd - new));
+		terminal_move_to_char(el, display_vcol(new, (int)(nfd - new)));
 		/*
 		 * Check if we have stuff to keep at the end
 		 */
@@ -964,12 +1045,12 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * (nfd + fx)
 			 */
 			len = (size_t) ((nsb - nfd) - fx);
-			terminal_overwrite(el, (nfd + fx), len);
+			re_overwrite_nc(el, (nfd + fx), len);
 			re__strncopy(ofd + fx, nfd + fx, len);
 		} else {
 			ELRE_DEBUG(1, __F, "without anything to save\r\n");
 			len = (size_t) (nsb - nfd);
-			terminal_overwrite(el, nfd, len);
+			terminal_overwrite(el, nfd, len);	/* nsb==ne, no trailing combining */
 			re__strncopy(ofd, nfd, len);
 		}
 	}
@@ -979,7 +1060,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	if (sx >= 0) {
 		ELRE_DEBUG(1, __F,
 		    "second diff insert at %d...\r\n", (int)(nse - new));
-		terminal_move_to_char(el, (int)(nse - new));
+		terminal_move_to_char(el, display_vcol(new, (int)(nse - new)));
 		if (ols != oe) {
 			ELRE_DEBUG(1, __F, "with stuff to keep at end\r\n");
 			if (sx > 0) {
@@ -992,11 +1073,11 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * write (nls-nse) - sx chars of new starting at
 			 * (nse + sx)
 			 */
-			terminal_overwrite(el, (nse + sx),
+			re_overwrite_nc(el, (nse + sx),
 			    (size_t)((nls - nse) - sx));
 		} else {
 			ELRE_DEBUG(1, __F, "without anything to save\r\n");
-			terminal_overwrite(el, nse, (size_t)(nls - nse));
+			re_overwrite_nc(el, nse, (size_t)(nls - nse));
 
 			/*
 			 * No need to do a clear-to-end here because we were
@@ -1107,10 +1188,50 @@ re_fastputc(EditLine *el, wint_t c)
 	    re_fastputc(el, ' ');
 
 	terminal__putc(el, c);
-	el->el_display[el->el_cursor.v][el->el_cursor.h++] = c;
-	while (--w > 0)
-		el->el_display[el->el_cursor.v][el->el_cursor.h++]
-			= MB_FILL_CHAR;
+
+	/*
+	 * el_cursor.h is a visual-column count; el_display[] is a
+	 * code-point array.  For NFD Unicode, combining marks occupy a
+	 * code-point slot but zero visual columns, so the two counts
+	 * diverge.  Convert el_cursor.h to the corresponding code-point
+	 * index before writing into el_display.
+	 */
+	{
+		wint_t *line = el->el_display[el->el_cursor.v];
+		int vis = 0, cpidx = 0, th = el->el_terminal.t_size.h;
+		int cw;
+
+		/* Walk grapheme clusters (base + combining marks) until
+		 * we have consumed el_cursor.h visual columns. */
+		while (vis < el->el_cursor.h &&
+		    cpidx < th && line[cpidx] != L'\0') {
+			cw = wcwidth((wchar_t)line[cpidx]);
+			if (cw < 0) cw = 1;
+			if (cw > 0) {
+				vis += cw;
+				cpidx++;
+				/* skip combining marks for this base char */
+				while (cpidx < th && line[cpidx] != L'\0' &&
+				    wcwidth((wchar_t)line[cpidx]) == 0)
+					cpidx++;
+			} else {
+				cpidx++;
+			}
+		}
+
+		/* If the loop exited before reaching el_cursor.h visual columns
+		 * (hit a '\0' meaning the display row hasn't been populated yet),
+		 * fall back to using el_cursor.h directly as the code-point
+		 * index — correct for ASCII / unpopulated display rows. */
+		if (vis < el->el_cursor.h)
+			cpidx = el->el_cursor.h;
+
+		line[cpidx++] = c;
+		cw = w > 0 ? w : 1;
+		el->el_cursor.h += cw;
+		while (--w > 0)
+			line[cpidx++] = MB_FILL_CHAR;
+	}
 
 	if (el->el_cursor.h >= el->el_terminal.t_size.h) {
 		/* if we must overflow */

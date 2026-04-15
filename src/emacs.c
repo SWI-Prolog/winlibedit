@@ -62,6 +62,17 @@ el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
 	return cursor;
 }
 
+static wchar_t *
+el_next_grapheme(wchar_t *cursor, wchar_t *limit)
+{
+	if (cursor >= limit)
+		return cursor;
+	cursor++;		/* skip the base character */
+	while (cursor < limit && wcwidth(*cursor) == 0)
+		cursor++;	/* skip attached combining marks */
+	return cursor;
+}
+
 /* em_delete_or_list():
  *	Delete character under cursor or list completions if at end of line
  *	[^D]
@@ -86,10 +97,18 @@ em_delete_or_list(EditLine *el, wint_t c)
 			return CC_ERROR;
 		}
 	} else {
-		if (el->el_state.doingarg)
-			c_delafter(el, el->el_state.argument);
-		else
-			c_delafter1(el);
+		if (el->el_state.doingarg) {
+			int n = el->el_state.argument;
+			wchar_t *end = el->el_line.cursor;
+			while (n-- > 0)
+				end = el_next_grapheme(end,
+				    el->el_line.lastchar);
+			c_delafter(el, (int)(end - el->el_line.cursor));
+		} else {
+			wchar_t *end = el_next_grapheme(el->el_line.cursor,
+			    el->el_line.lastchar);
+			c_delafter(el, (int)(end - el->el_line.cursor));
+		}
 		if (el->el_line.cursor > el->el_line.lastchar)
 			el->el_line.cursor = el->el_line.lastchar;
 				/* bounds check */

@@ -51,6 +51,7 @@ __RCSID("$NetBSD: chared.c,v 1.64 2024/06/29 14:13:14 christos Exp $");
 #include "el.h"
 #include "common.h"
 #include "fcns.h"
+#include "mk_wcwidth.h"
 
 /* value to leave unused in line buffer */
 #define	EL_LEAVE	2
