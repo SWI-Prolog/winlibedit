@@ -50,8 +50,36 @@ __RCSID("$NetBSD: common.c,v 1.50 2024/06/30 16:29:42 christos Exp $");
 #include "el.h"
 #include "common.h"
 #include "fcns.h"
+#include "mk_wcwidth.h"
 #include "parse.h"
 #include "vi.h"
+
+/*
+ * Grapheme cluster helpers: step the cursor forward/backward by one
+ * user-perceived character (base code point + any following combining marks).
+ */
+static wchar_t *
+el_next_grapheme(wchar_t *cursor, wchar_t *limit)
+{
+	if (cursor >= limit)
+		return cursor;
+	cursor++;			/* skip the base character */
+	while (cursor < limit && wcwidth(*cursor) == 0)
+		cursor++;		/* skip attached combining marks */
+	return cursor;
+}
+
+static wchar_t *
+el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
+{
+	if (cursor <= buffer)
+		return cursor;
+	--cursor;			/* step back one code point */
+	/* if we landed on a combining mark, keep backing up to the base */
+	while (cursor > buffer && wcwidth(*cursor) == 0)
+		--cursor;
+	return cursor;
+}
 
 /* ed_end_of_file():
  *	Indicate end of file
@@ -175,7 +203,13 @@ ed_delete_next_char(EditLine *el, wint_t c __attribute__((__unused__)))
 		} else
 				return CC_ERROR;
 	}
-	c_delafter(el, el->el_state.argument);	/* delete after dot */
+	{	/* delete el->el_state.argument grapheme clusters forward */
+		int n = el->el_state.argument;
+		wchar_t *end = el->el_line.cursor;
+		while (n-- > 0)
+			end = el_next_grapheme(end, el->el_line.lastchar);
+		c_delafter(el, (int)(end - el->el_line.cursor));
+	}
 	if (el->el_map.type == MAP_VI &&
 	    el->el_line.cursor >= el->el_line.lastchar &&
 	    el->el_line.cursor > el->el_line.buffer)
@@ -295,7 +329,12 @@ ed_next_char(EditLine *el, wint_t c __attribute__((__unused__)))
 	    el->el_chared.c_vcmd.action == NOP))
 		return CC_ERROR;
 
-	el->el_line.cursor += el->el_state.argument;
+	{
+		int i = el->el_state.argument;
+		while (i-- > 0)
+			el->el_line.cursor =
+			    el_next_grapheme(el->el_line.cursor, lim);
+	}
 	if (el->el_line.cursor > lim)
 		el->el_line.cursor = lim;
 
@@ -344,7 +383,11 @@ ed_prev_char(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
 	if (el->el_line.cursor > el->el_line.buffer) {
-		el->el_line.cursor -= el->el_state.argument;
+		int i = el->el_state.argument;
+		while (i-- > 0)
+			el->el_line.cursor =
+			    el_prev_grapheme(el->el_line.cursor,
+			        el->el_line.buffer);
 		if (el->el_line.cursor < el->el_line.buffer)
 			el->el_line.cursor = el->el_line.buffer;
 

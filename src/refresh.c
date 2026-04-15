@@ -52,6 +52,7 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 #endif
 
 #include "el.h"
+#include "mk_wcwidth.h"
 
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);
@@ -190,13 +191,6 @@ re_putliteral(EditLine *el, const wchar_t *begin, const wchar_t *end)
 	}
 }
 
-#if __WINDOWS__
-static inline int
-wcwidth(wchar_t c)
-{ return 1;
-}
-#endif
-
 /* re_putc():
  *	Draw the character given
  */
@@ -223,7 +217,7 @@ re_putc(EditLine *el, wint_t c, int shift)
 	if (!shift)
 		return;
 
-	cur->h += w ? w : 1;	/* advance to next place */
+	cur->h += w;		/* advance to next place (0 for combining) */
 	if (cur->h >= sizeh) {
 		/* assure end of line */
 		el->el_vdisplay[cur->v][sizeh] = '\0';

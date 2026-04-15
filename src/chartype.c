@@ -44,6 +44,7 @@ __RCSID("$NetBSD: chartype.c,v 1.37 2023/08/10 20:38:00 mrg Exp $");
 #endif
 
 #include "el.h"
+#include "mk_wcwidth.h"
 
 #define CT_BUFSIZ ((size_t)1024)
 
@@ -282,13 +283,6 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 	*dst = L'\0';
 	return conv->wbuff;
 }
-
-#if __WINDOWS__
-static inline int
-wcwidth(wchar_t c)
-{ return 1;			/* TBD: double-width Unicode chars */
-}
-#endif
 
 libedit_private int
 ct_visual_width(wchar_t c)

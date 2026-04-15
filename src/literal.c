@@ -44,6 +44,7 @@ __RCSID("$NetBSD: literal.c,v 1.6 2024/12/05 22:21:53 christos Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include "el.h"
+#include "mk_wcwidth.h"
 
 libedit_private void
 literal_init(EditLine *el)
@@ -75,8 +76,6 @@ literal_clear(EditLine *el)
 	l->l_len = 0;
 	l->l_idx = 0;
 }
-
-#define wcwidth(c) 1
 
 libedit_private wint_t
 literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)

@@ -49,6 +49,18 @@ __RCSID("$NetBSD: emacs.c,v 1.38 2024/06/29 17:28:07 christos Exp $");
 #include "el.h"
 #include "emacs.h"
 #include "fcns.h"
+#include "mk_wcwidth.h"
+
+static wchar_t *
+el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
+{
+	if (cursor <= buffer)
+		return cursor;
+	--cursor;
+	while (cursor > buffer && wcwidth(*cursor) == 0)
+		--cursor;
+	return cursor;
+}
 
 /* em_delete_or_list():
  *	Delete character under cursor or list completions if at end of line
@@ -501,12 +513,16 @@ em_delete_prev_char(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor <= el->el_line.buffer)
 		return CC_ERROR;
 
-	if (el->el_state.doingarg)
-		c_delbefore(el, el->el_state.argument);
-	else
-		c_delbefore1(el);
-	el->el_line.cursor -= el->el_state.argument;
-	if (el->el_line.cursor < el->el_line.buffer)
-		el->el_line.cursor = el->el_line.buffer;
+	{	/* delete one (or argument) grapheme cluster(s) backward */
+		int n = el->el_state.doingarg ? el->el_state.argument : 1;
+		wchar_t *start = el->el_line.cursor;
+		while (n-- > 0)
+			start = el_prev_grapheme(start, el->el_line.buffer);
+		int count = (int)(el->el_line.cursor - start);
+		c_delbefore(el, count);
+		el->el_line.cursor -= count;
+		if (el->el_line.cursor < el->el_line.buffer)
+			el->el_line.cursor = el->el_line.buffer;
+	}
 	return CC_REFRESH;
 }
