@@ -439,7 +439,12 @@ terminal_alloc_buffer(EditLine *el)
 	if (b == NULL)
 		return NULL;
 	for (i = 0; i < c->v; i++) {
-		b[i] = el_calloc((size_t)(c->h + 1), sizeof(**b));
+		/* Allocate EL_BUFSIZ+1 per row rather than c->h+1: NFD Unicode
+		 * text has more code points than visual columns (each combining
+		 * mark occupies its own code-point slot), so the display arrays
+		 * must be wide enough to hold all code points for one visual
+		 * line even when that exceeds the terminal column width. */
+		b[i] = el_calloc(EL_BUFSIZ + 1, sizeof(**b));
 		if (b[i] == NULL) {
 			while (--i >= 0)
 				el_free(b[i]);
@@ -615,22 +620,35 @@ mc_again:
 
 					/* Convert el_cursor.h (visual col) to
 					 * a code-point index by scanning from
-					 * the start of the line. */
+					 * the start of the line.
+					 * Bound by EL_BUFSIZ (not t_size.h):
+					 * NFD combining marks give lines with
+					 * more code-point slots than columns.
+					 * MB_FILL_CHAR is the right-half
+					 * placeholder for wide chars: skip it
+					 * in the cluster-tail loop so it does
+					 * not erroneously consume a vis column
+					 * (wcwidth returns -1 for it). */
 					while (vis < el->el_cursor.h &&
-					    idx < el->el_terminal.t_size.h &&
+					    idx < (int)EL_BUFSIZ &&
 					    line[idx] != L'\0') {
+						if ((wint_t)line[idx] ==
+						    MB_FILL_CHAR) {
+							idx++; continue;
+						}
 						w = wcwidth((wchar_t)line[idx]);
 						if (w < 0) w = 1;
 						vis += w;
 						idx++;
-						/* also skip the base char's
-						 * combining marks */
+						/* skip combining marks and the
+						 * MB_FILL_CHAR placeholder that
+						 * follows a wide base char */
 						if (w > 0) {
-							while (idx <
-							    el->el_terminal.t_size.h
+							while (idx < (int)EL_BUFSIZ
 							    && line[idx] != L'\0' &&
-							    wcwidth((wchar_t)line[idx])
-							    == 0)
+							    (wcwidth((wchar_t)line[idx])
+							    == 0 || (wint_t)line[idx]
+							    == MB_FILL_CHAR))
 								idx++;
 						}
 					}
@@ -639,20 +657,24 @@ mc_again:
 					 * (vis,idx) forward until we reach
 					 * visual column `where'. */
 					while (vis < where &&
-					    idx < el->el_terminal.t_size.h &&
+					    idx < (int)EL_BUFSIZ &&
 					    line[idx] != L'\0') {
+						if ((wint_t)line[idx] ==
+						    MB_FILL_CHAR) {
+							idx++; continue;
+						}
 						w = wcwidth((wchar_t)line[idx]);
 						if (w <= 0) { idx++; continue; }
 						terminal__putc(el,
 						    (wchar_t)line[idx++]);
 						vis += w;
-						/* write the cluster's combining
-						 * marks without advancing vis */
-						while (idx <
-						    el->el_terminal.t_size.h &&
+						/* write combining marks and skip
+						 * MB_FILL_CHAR without writing */
+						while (idx < (int)EL_BUFSIZ &&
 						    line[idx] != L'\0' &&
-						    wcwidth((wchar_t)line[idx])
-						    == 0)
+						    (wcwidth((wchar_t)line[idx])
+						    == 0 || (wint_t)line[idx]
+						    == MB_FILL_CHAR))
 							terminal__putc(el,
 							    (wchar_t)line[idx++]);
 					}
@@ -698,7 +720,11 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 	if (n == 0)
 		return;
 
-	if (n > (size_t)el->el_terminal.t_size.h) {
+	/* n is a code-point count, not a visual column count.  For NFD Unicode
+	 * text, combining marks add extra code-point slots so n can legitimately
+	 * exceed t_size.h while still fitting in one visual line.  Bound by
+	 * EL_BUFSIZ (the allocated row size) instead. */
+	if (n > EL_BUFSIZ) {
 #ifdef DEBUG_SCREEN
 		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: n is ridiculous: %zu\r\n", __func__, n);
@@ -723,19 +749,20 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 			if (el->el_cursor.v + 1 < el->el_terminal.t_size.v)
 				el->el_cursor.v++;
 			if (EL_HAS_MAGIC_MARGINS) {
-				/* force the wrap to avoid the "magic"
-				 * situation */
-				wchar_t c;
-				if ((c = el->el_display[el->el_cursor.v]
-				    [el->el_cursor.h]) != '\0') {
-					terminal_overwrite(el, &c, (size_t)1);
-					while (el->el_display[el->el_cursor.v]
-					    [el->el_cursor.h] == MB_FILL_CHAR)
-						el->el_cursor.h++;
-				} else {
-					terminal__putc(el, ' ');
-					el->el_cursor.h = 1;
-				}
+				/* Force the deferred wrap by writing a space
+				 * and then backspacing.  The space resolves
+				 * the magic-margin state (physical cursor moves
+				 * to (v+1, 0)), and the backspace returns it to
+				 * column 0 so physical cursor matches tracking
+				 * at (v+1, 0).  This matches re_fastputc().
+				 *
+				 * The older approach of writing el_display[v+1][0]
+				 * back briefly drops the following combining mark
+				 * from the cell (we only write one code point),
+				 * and leaves tracking.h at 1 which is out of sync
+				 * with the subsequent \r in re_update_line. */
+				terminal__putc(el, ' ');
+				terminal__putc(el, '\b');
 			}
 		} else		/* no wrap, but cursor stays on screen */
 			el->el_cursor.h = el->el_terminal.t_size.h - 1;
@@ -799,7 +826,9 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 #endif /* DEBUG_EDIT */
 		return;
 	}
-	if (num > el->el_terminal.t_size.h) {
+	/* num is a code-point count; see terminal_overwrite() for why this
+	 * must be compared against EL_BUFSIZ rather than t_size.h. */
+	if (num > (int)EL_BUFSIZ) {
 #ifdef DEBUG_SCREEN
 		(void) el_printf(el, EL_PTR_ERR,
 		    "%s: num is ridiculous: %d\r\n", __func__, num);
@@ -809,7 +838,25 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 	if (GoodStr(T_IC))	/* if I have multiple insert */
 		if ((num > 1) || !GoodStr(T_ic)) {
 				/* if ic would be more expensive */
-			terminal_tputs(el, tgoto(Str(T_IC), num, num), num);
+			/* T_IC takes a VISUAL column count (how many blank
+			 * cells to insert on the terminal line), while num is
+			 * the CODE-POINT count we want to write.  For NFD
+			 * text these diverge: 'a'+U+0300 is 2 code points but
+			 * only 1 visual column.  Without this distinction
+			 * every combining mark in an insert pushes one extra
+			 * cell to the right, so repeated inserts accumulate
+			 * phantom gaps. */
+			int num_vcols = 0;
+			int i;
+			for (i = 0; i < num; i++) {
+				int _w = wcwidth(cp[i]);
+				if (_w > 0)
+					num_vcols += _w;
+			}
+			if (num_vcols > 0)
+				terminal_tputs(el,
+				    tgoto(Str(T_IC), num_vcols, num_vcols),
+				    num_vcols);
 			terminal_overwrite(el, cp, (size_t)num);
 				/* this updates el_cursor.h */
 			return;
@@ -857,6 +904,8 @@ terminal_clear_EOL(EditLine *el, int num)
 {
 	int i;
 
+	if (num <= 0)		/* nothing to erase */
+		return;
 	if (EL_CAN_CEOL && GoodStr(T_ce))
 		terminal_tputs(el, Str(T_ce), 1);
 	else {

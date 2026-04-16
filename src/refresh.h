@@ -41,7 +41,8 @@
 #define	_h_el_refresh
 
 typedef struct {
-	coord_t	r_cursor;	/* Refresh cursor position	*/
+	coord_t	r_cursor;	/* Refresh cursor position (code-point index) */
+	int	r_vcursor_h;	/* Visual column for current row (not code points) */
 	int	r_oldcv;	/* Vertical locations		*/
 	int	r_newcv;
 } el_refresh_t;

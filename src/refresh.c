@@ -101,7 +101,8 @@ re_printstr(EditLine *el, const char *str, wchar_t *f, wchar_t *t)
 static void
 re_nextline(EditLine *el)
 {
-	el->el_refresh.r_cursor.h = 0;	/* reset it. */
+	el->el_refresh.r_cursor.h = 0;		/* reset code-point index */
+	el->el_refresh.r_vcursor_h = 0;	/* reset visual column */
 
 	/*
 	 * If we would overflow (input is longer than terminal size),
@@ -207,8 +208,30 @@ re_putc(EditLine *el, wint_t c, int shift)
 	if (w == -1)
 		w = 0;
 
-	while (shift && (cur->h + w > sizeh))
-	    re_putc(el, ' ', 1);
+	/* Wrap / pre-wrap logic only applies to base characters (w > 0).
+	 * Combining marks (w == 0) extend the preceding grapheme cluster,
+	 * so they must stay on the current visual line even when
+	 * r_vcursor_h has already reached sizeh — otherwise they end up
+	 * orphaned at the start of the next line, detached from their
+	 * base character. */
+	if (shift && w > 0) {
+		/* If a wide char would straddle the line edge, pad with
+		 * spaces to the end of the current line. */
+		while (el->el_refresh.r_vcursor_h + w > sizeh &&
+		       el->el_refresh.r_vcursor_h < sizeh) {
+			el->el_vdisplay[cur->v][cur->h] = ' ';
+			cur->h += 1;
+			el->el_refresh.r_vcursor_h += 1;
+		}
+		/* Wrap when the line is full.  This is the only wrap point:
+		 * previously re_putc wrapped immediately after the base char
+		 * that filled the line, which orphaned the following combining
+		 * marks onto the next line. */
+		if (el->el_refresh.r_vcursor_h >= sizeh) {
+			el->el_vdisplay[cur->v][cur->h] = '\0';
+			re_nextline(el);
+		}
+	}
 
 	el->el_vdisplay[cur->v][cur->h] = c;
 	/* assumes !shift is only used for single-column chars */
@@ -219,12 +242,11 @@ re_putc(EditLine *el, wint_t c, int shift)
 	if (!shift)
 		return;
 
-	cur->h += w ? w : 1;	/* advance to next place */
-	if (cur->h >= sizeh) {
-		/* assure end of line */
-		el->el_vdisplay[cur->v][sizeh] = '\0';
-		re_nextline(el);
-	}
+	/* Advance code-point index: wide chars need 2 slots, combining marks
+	 * need 1 slot (they are stored separately in el_vdisplay but occupy
+	 * zero visual columns).  Visual column only advances for non-combining. */
+	cur->h += w > 1 ? w : 1;
+	el->el_refresh.r_vcursor_h += w > 0 ? w : 0;
 }
 
 
@@ -251,6 +273,7 @@ re_refresh(EditLine *el)
 	/* reset the Drawing cursor */
 	el->el_refresh.r_cursor.h = 0;
 	el->el_refresh.r_cursor.v = 0;
+	el->el_refresh.r_vcursor_h = 0;
 
 	terminal_move_to_char(el, 0);
 
@@ -260,6 +283,7 @@ re_refresh(EditLine *el)
 	/* reset the Drawing cursor */
 	el->el_refresh.r_cursor.h = 0;
 	el->el_refresh.r_cursor.v = 0;
+	el->el_refresh.r_vcursor_h = 0;
 
 	if (el->el_line.cursor >= el->el_line.lastchar) {
 		if (el->el_map.current == el->el_map.alt
@@ -315,7 +339,9 @@ re_refresh(EditLine *el)
 		cur.h = el->el_refresh.r_cursor.h;
 		cur.v = el->el_refresh.r_cursor.v;
 	}
-	rhdiff = el->el_terminal.t_size.h - el->el_refresh.r_cursor.h -
+	/* Use r_vcursor_h (visual column) not r_cursor.h (code-point index)
+	 * for available-space calculations; they differ for NFD combining marks. */
+	rhdiff = el->el_terminal.t_size.h - el->el_refresh.r_vcursor_h -
 	    el->el_rprompt.p_pos.h;
 	if (el->el_rprompt.p_pos.h && !el->el_rprompt.p_pos.v &&
 	    !el->el_refresh.r_cursor.v && rhdiff > 1) {
@@ -345,6 +371,16 @@ re_refresh(EditLine *el)
 		int cur_vcol = display_vcol(
 		    (const wchar_t *)el->el_vdisplay[cur.v], cur.h);
 		cur.h = cur_vcol;   /* reuse cur.h to mean visual column now */
+		/* If the cursor lands exactly at the visual right edge (only
+		 * possible at the end of input for a full line), the target
+		 * column th is outside the valid 0..th-1 range that terminal
+		 * positioning commands accept (CHA clamps to th-1).  Move to
+		 * the start of the next row — equivalent physical position on
+		 * xenl terminals and within range. */
+		if (cur.h >= el->el_terminal.t_size.h) {
+			cur.h = 0;
+			cur.v++;
+		}
 	}
 
 	ELRE_DEBUG(1, __F,
@@ -366,9 +402,13 @@ re_refresh(EditLine *el)
 		 * end of the screen line, it won't be a NUL or some old
 		 * leftover stuff.
 		 */
+		/* EL_BUFSIZ rather than t_size.h: NFD combining marks add
+		 * extra code-point slots beyond the visual column count, so the
+		 * display rows are allocated at EL_BUFSIZ+1 and we must copy the
+		 * full content to keep el_display in sync with el_vdisplay. */
 		re__copy_and_pad((wchar_t *)el->el_display[i],
 		    (wchar_t *)el->el_vdisplay[i],
-		    (size_t) el->el_terminal.t_size.h);
+		    EL_BUFSIZ);
 	}
 	ELRE_DEBUG(1, __F,
 	"\r\nel->el_refresh.r_cursor.v=%d,el->el_refresh.r_oldcv=%d i=%d\r\n",
@@ -865,8 +905,20 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	 * else
 	 *	No insert or delete
          */
+	/* (p-old)+fx must be checked in visual columns, not code points:
+	 * for NFD Unicode, code-point count exceeds visual column count when
+	 * there are combining marks.  Compute the visual analogue:
+	 *   p_vcol     = visual column of 'p' in old
+	 *   fx_vcol    = net visual width added by the first-diff insertion
+	 *              = visual_width(new[nfd..nsb]) - visual_width(old[ofd..osb]) */
+	{
+	int p_vcol  = display_vcol(old, (int)(p - old));
+	int fx_vcol = (display_vcol(new, (int)(nsb - new)) -
+	               display_vcol(new, (int)(nfd - new))) -
+	              (display_vcol(old, (int)(osb - old)) -
+	               display_vcol(old, (int)(ofd - old)));
 	if ((nsb != nfd) && fx > 0 &&
-	    ((p - old) + fx <= el->el_terminal.t_size.h)) {
+	    (p_vcol + fx_vcol <= el->el_terminal.t_size.h)) {
 		ELRE_DEBUG(1,
 		    __F, "first diff insert at %td...\r\n", nfd - new);
 		/*
@@ -956,8 +1008,17 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * write (nsb-nfd) chars of new starting at nfd
 			 */
 			re_overwrite_nc(el, nfd, (size_t)(nsb - nfd));
-			re_clear_eol(el, fx, sx,
-			    (int)((oe - old) - (ne - new)));
+			/* Compute erase count in visual columns, not code
+			 * points.  For NFD Unicode, code-point count exceeds
+			 * visual column count when combining marks are present,
+			 * so (oe-old)-(ne-new) in code points can be positive
+			 * even when both lines fill exactly t_size.h visual
+			 * columns.  After writing a full-width line the cursor
+			 * has wrapped to the next row; passing num>0 to
+			 * terminal_clear_EOL would then erase that next row. */
+			re_clear_eol(el, 0, 0,
+			    display_vcol(old, (int)(oe - old)) -
+			    display_vcol(new, (int)(ne - new)));
 			/*
 			 * Done
 			 */
@@ -965,8 +1026,9 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		}
 	} else
 		fx = 0;
+	} /* end p_vcol / fx_vcol scope */
 
-	if (sx < 0 && (ose - old) + fx < el->el_terminal.t_size.h) {
+	if (sx < 0 && display_vcol(old, (int)(ose - old) + fx) < el->el_terminal.t_size.h) {
 		ELRE_DEBUG(1, __F,
 		    "second diff delete at %td...\r\n", (ose - old) + fx);
 		/*
@@ -1007,8 +1069,12 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			ELRE_DEBUG(1, __F,
 			    "but with nothing left to save\r\n");
 			re_overwrite_nc(el, nse, (size_t)(nls - nse));
-			re_clear_eol(el, fx, sx,
-			    (int)((oe - old) - (ne - new)));
+			/* Use visual-column diff, not code-point diff.  See
+			 * the matching comment in the fx<0/nothing-to-save
+			 * branch above. */
+			re_clear_eol(el, 0, 0,
+			    display_vcol(old, (int)(oe - old)) -
+			    display_vcol(new, (int)(ne - new)));
 		}
 	}
 	/*
@@ -1198,21 +1264,31 @@ re_fastputc(EditLine *el, wint_t c)
 	 */
 	{
 		wint_t *line = el->el_display[el->el_cursor.v];
-		int vis = 0, cpidx = 0, th = el->el_terminal.t_size.h;
+		int vis = 0, cpidx = 0;
 		int cw;
 
 		/* Walk grapheme clusters (base + combining marks) until
-		 * we have consumed el_cursor.h visual columns. */
+		 * we have consumed el_cursor.h visual columns.
+		 * Bound by EL_BUFSIZ (not t_size.h): NFD combining marks give
+		 * lines with more code-point slots than visual columns.
+		 * MB_FILL_CHAR (right-half placeholder for wide chars) has
+		 * wcwidth=-1; skip it explicitly so it doesn't steal a column. */
 		while (vis < el->el_cursor.h &&
-		    cpidx < th && line[cpidx] != L'\0') {
+		    cpidx < (int)EL_BUFSIZ && line[cpidx] != L'\0') {
+			if ((wint_t)line[cpidx] == MB_FILL_CHAR) {
+				cpidx++; continue;
+			}
 			cw = wcwidth((wchar_t)line[cpidx]);
 			if (cw < 0) cw = 1;
 			if (cw > 0) {
 				vis += cw;
 				cpidx++;
-				/* skip combining marks for this base char */
-				while (cpidx < th && line[cpidx] != L'\0' &&
-				    wcwidth((wchar_t)line[cpidx]) == 0)
+				/* skip combining marks and MB_FILL_CHAR
+				 * placeholder following this base char */
+				while (cpidx < (int)EL_BUFSIZ &&
+				    line[cpidx] != L'\0' &&
+				    (wcwidth((wchar_t)line[cpidx]) == 0 ||
+				    (wint_t)line[cpidx] == MB_FILL_CHAR))
 					cpidx++;
 			} else {
 				cpidx++;
@@ -1227,8 +1303,14 @@ re_fastputc(EditLine *el, wint_t c)
 			cpidx = el->el_cursor.h;
 
 		line[cpidx++] = c;
-		cw = w > 0 ? w : 1;
-		el->el_cursor.h += cw;
+		/* Combining marks (w == 0) occupy a code-point slot but
+		 * zero visual columns, so don't advance el_cursor.h for
+		 * them.  Previously we advanced by max(w, 1) which caused
+		 * el_cursor.h to drift forward by 1 for every combining
+		 * mark typed — after N NFD characters the tracked visual
+		 * column was N ahead of the physical cursor. */
+		if (w > 0)
+			el->el_cursor.h += w;
 		while (--w > 0)
 			line[cpidx++] = MB_FILL_CHAR;
 	}

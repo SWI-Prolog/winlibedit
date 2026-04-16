@@ -112,7 +112,9 @@ prompt_print(EditLine *el, int op)
 	}
 
 	elp->p_pos.v = el->el_refresh.r_cursor.v;
-	elp->p_pos.h = el->el_refresh.r_cursor.h;
+	/* p_pos.h must be a visual column, not a code-point index.
+	 * Use r_vcursor_h which tracks visual width separately. */
+	elp->p_pos.h = el->el_refresh.r_vcursor_h;
 }
 
 
