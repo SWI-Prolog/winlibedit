@@ -330,8 +330,15 @@ re_refresh(EditLine *el)
 			/* save for later */
 			cur.h = el->el_refresh.r_cursor.h;
 			cur.v = el->el_refresh.r_cursor.v;
-                        /* handle being at a linebroken doublewidth char */
-                        if (w > 1 && el->el_refresh.r_cursor.h + w >
+                        /* If a wide char at the cursor position would
+                         * straddle the right edge, the cluster wraps
+                         * to the next row, and the cursor should land
+                         * there too.  Compare in VISUAL columns — using
+                         * r_cursor.h (code-point index) mistakes NFD
+                         * code-point slots for width and bumps the
+                         * cursor off-row any time long NFD content
+                         * pushes the code-point count past t_size.h. */
+                        if (w > 1 && el->el_refresh.r_vcursor_h + w >
 			    el->el_terminal.t_size.h) {
 				cur.h = 0;
 				cur.v++;
