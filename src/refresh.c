@@ -658,6 +658,24 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	nfd = n;
 
 	/*
+	 * Snap both pointers back to the start of their grapheme cluster
+	 * when the first diff lands on a combining mark or a wide-char
+	 * right-half placeholder (MB_FILL_CHAR).  A combining mark belongs
+	 * visually to the preceding base's cluster; an ANSI cursor
+	 * positioning command targets the CELL (or visual column) that
+	 * holds the base, so moving the cursor to a combiner's position and
+	 * writing just the combiner ends up attaching it to the cluster at
+	 * the PREVIOUS visual column (cell-1 semantics).  Also snap
+	 * through the wide-char placeholder so a diff inside a wide cluster
+	 * treats the cluster atomically.
+	 */
+	while (ofd > old &&
+	       (wcwidth(*ofd) == 0 || *ofd == MB_FILL_CHAR)) {
+		ofd--;
+		nfd--;
+	}
+
+	/*
          * Find the end of both old and new
          */
 	while (*o)
