@@ -45,6 +45,9 @@ typedef struct {
 	int	r_vcursor_h;	/* Visual column for current row (not code points) */
 	int	r_oldcv;	/* Vertical locations		*/
 	int	r_newcv;
+	int	r_wrap_pending;	/* re_fastputc: base char filled the row, wrap
+				   is deferred until the next base char so a
+				   trailing combining mark can still attach */
 } el_refresh_t;
 
 libedit_private void	re_putc(EditLine *, wint_t, int);

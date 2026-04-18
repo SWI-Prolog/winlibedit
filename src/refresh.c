@@ -61,6 +61,7 @@ static void	re_update_line(EditLine *, wchar_t *, wchar_t *, int);
 static void	re_insert (EditLine *, wchar_t *, int, int, wchar_t *, int);
 static void	re_delete(EditLine *, wchar_t *, int, int, int);
 static void	re_fastputc(EditLine *, wint_t);
+static void	re_fastputc_resolve_wrap(EditLine *);
 static void	re_clear_eol(EditLine *, int, int, int);
 static void	re__strncopy(wchar_t *, wchar_t *, size_t);
 static void	re__copy_and_pad(wchar_t *, const wchar_t *, size_t);
@@ -265,6 +266,14 @@ re_refresh(EditLine *el)
 #ifdef notyet
 	size_t termsz;
 #endif
+
+	/* re_fastputc may have deferred a wrap so a following combining
+	 * mark could attach to the base it just drew.  A full refresh
+	 * recomputes el_display from scratch, so we must settle that
+	 * deferred state first — otherwise el_cursor.h stays at t_size.h
+	 * and later move_to_char calls land on the wrong row. */
+	if (el->el_refresh.r_wrap_pending)
+		re_fastputc_resolve_wrap(el);
 
 	ELRE_DEBUG(1, __F, "el->el_line.buffer = :%ls:\r\n",
 	    el->el_line.buffer);
@@ -1204,6 +1213,11 @@ re_refresh_cursor(EditLine *el)
 	wchar_t *cp;
 	int h, v, th, w;
 
+	/* Same reason as re_refresh: settle any deferred wrap before
+	 * computing where the cursor should go. */
+	if (el->el_refresh.r_wrap_pending)
+		re_fastputc_resolve_wrap(el);
+
 	if (el->el_line.cursor >= el->el_line.lastchar) {
 		if (el->el_map.current == el->el_map.alt
 		    && el->el_line.lastchar != el->el_line.buffer)
@@ -1258,17 +1272,68 @@ re_refresh_cursor(EditLine *el)
 }
 
 
+/* re_fastputc_resolve_wrap():
+ *	Finalise the deferred line wrap left by re_fastputc.  Advances
+ *	el_cursor.v, clears the new row in el_display, and emits the
+ *	MAGIC_MARGINS ' '+'\b' dance (or \r\n without auto-margins) so the
+ *	physical cursor matches el_cursor again.
+ */
+static void
+re_fastputc_resolve_wrap(EditLine *el)
+{
+	wint_t *lastline;
+
+	el->el_refresh.r_wrap_pending = 0;
+	el->el_cursor.h = 0;
+
+	if (el->el_cursor.v + 1 >= el->el_terminal.t_size.v) {
+		int i, lins = el->el_terminal.t_size.v;
+		lastline = el->el_display[0];
+		for (i = 1; i < lins; i++)
+			el->el_display[i - 1] = el->el_display[i];
+		el->el_display[i - 1] = lastline;
+	} else {
+		el->el_cursor.v++;
+		lastline = el->el_display[++el->el_refresh.r_oldcv];
+	}
+	re__copy_and_pad((wchar_t *)lastline, L"",
+	    (size_t)el->el_terminal.t_size.h);
+
+	if (EL_HAS_AUTO_MARGINS) {
+		if (EL_HAS_MAGIC_MARGINS) {
+			terminal__putc(el, ' ');
+			terminal__putc(el, '\b');
+		}
+	} else {
+		terminal__putc(el, '\r');
+		terminal__putc(el, '\n');
+	}
+}
+
 /* re_fastputc():
  *	Add a character fast.
  */
 static void
 re_fastputc(EditLine *el, wint_t c)
 {
-	wint_t *lastline;
 	int w;
 
 	w = wcwidth(c);
-	while (w > 1 && el->el_cursor.h + w > el->el_terminal.t_size.h)
+
+	/* Defer-resolve: if a previous base char filled the row but we
+	 * held back the wrap so any trailing combining mark could attach
+	 * to it, a non-combining character here means the cluster is
+	 * complete — do the wrap now and then place this char at the
+	 * start of the next row. */
+	if (el->el_refresh.r_wrap_pending && w != 0)
+		re_fastputc_resolve_wrap(el);
+
+	/* Pre-pad if a wide char won't fit in the remaining columns of
+	 * the current row.  Only one padding space is needed: that space
+	 * sets r_wrap_pending, and the subsequent emoji write will
+	 * resolve the wrap and land on the next row. */
+	while (w > 1 && !el->el_refresh.r_wrap_pending &&
+	       el->el_cursor.h + w > el->el_terminal.t_size.h)
 	    re_fastputc(el, ' ');
 
 	terminal__putc(el, c);
@@ -1333,41 +1398,15 @@ re_fastputc(EditLine *el, wint_t c)
 			line[cpidx++] = MB_FILL_CHAR;
 	}
 
-	if (el->el_cursor.h >= el->el_terminal.t_size.h) {
-		/* if we must overflow */
-		el->el_cursor.h = 0;
-
-		/*
-		 * If we would overflow (input is longer than terminal size),
-		 * emulate scroll by dropping first line and shuffling the rest.
-		 * We do this via pointer shuffling - it's safe in this case
-		 * and we avoid memcpy().
-		 */
-		if (el->el_cursor.v + 1 >= el->el_terminal.t_size.v) {
-			int i, lins = el->el_terminal.t_size.v;
-
-			lastline = el->el_display[0];
-			for(i = 1; i < lins; i++)
-				el->el_display[i - 1] = el->el_display[i];
-
-			el->el_display[i - 1] = lastline;
-		} else {
-			el->el_cursor.v++;
-			lastline = el->el_display[++el->el_refresh.r_oldcv];
-		}
-		re__copy_and_pad((wchar_t *)lastline, L"",
-		    (size_t)el->el_terminal.t_size.h);
-
-		if (EL_HAS_AUTO_MARGINS) {
-			if (EL_HAS_MAGIC_MARGINS) {
-				terminal__putc(el, ' ');
-				terminal__putc(el, '\b');
-			}
-		} else {
-			terminal__putc(el, '\r');
-			terminal__putc(el, '\n');
-		}
-	}
+	/*
+	 * If this base char filled the row, do NOT wrap now.  A following
+	 * combining mark belongs to this same visual cluster and must stay
+	 * on the current row attached to the base — wrapping here would
+	 * orphan it onto the next line.  Defer the wrap until the next
+	 * non-combiner arrives (see re_fastputc_resolve_wrap()).
+	 */
+	if (el->el_cursor.h >= el->el_terminal.t_size.h)
+		el->el_refresh.r_wrap_pending = 1;
 }
 
 
