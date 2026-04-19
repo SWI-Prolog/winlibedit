@@ -91,6 +91,7 @@ extern char* tgetstr(char*, char**);
 #include "el.h"
 #include "fcns.h"
 #include "mk_wcwidth.h"
+#include "utf8.h"
 #include <stdbool.h>
 
 /*
@@ -1397,7 +1398,32 @@ terminal__putc(EditLine *el, wint_t c)
 #else
 		return fputs(literal_get(el, c), el->el_outfile);
 #endif
+#if SIZEOF_WCHAR_T == 2
+	/* A supplementary code point lives in the buffer as a UTF-16
+	 * surrogate pair.  Hold the lead until the trail arrives and then
+	 * encode the whole code point as 4-byte UTF-8 — emitting each
+	 * half separately would produce CESU-8 (two 3-byte sequences for
+	 * U+D8xx and U+DCxx) which downstream readers decode as two
+	 * lone-surrogate characters, not as the intended emoji. */
+	if (IS_UTF16_LEAD(c)) {
+		el->el_pending_lead = (unsigned)c;
+		return 0;
+	}
+	if (IS_UTF16_TRAIL(c) && el->el_pending_lead != 0) {
+		int cp = utf16_decode(el->el_pending_lead, (int)c);
+		el->el_pending_lead = 0;
+		/* Use utf8_put_char directly — ct_encode_char takes a
+		 * wchar_t argument, which is 16 bits on Windows and would
+		 * truncate the supplementary code point. */
+		char *e = utf8_put_char(buf, cp);
+		i = e - buf;
+		goto emit;
+	}
+#endif
 	i = ct_encode_char(buf, (size_t)MB_LEN_MAX, c);
+#if SIZEOF_WCHAR_T == 2
+emit:
+#endif
 	if (i <= 0)
 		return (int)i;
 	buf[i] = '\0';

@@ -53,6 +53,7 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 
 #include "el.h"
 #include "mk_wcwidth.h"
+#include "utf8.h"
 
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);
@@ -202,8 +203,23 @@ libedit_private void
 re_putc(EditLine *el, wint_t c, int shift)
 {
 	coord_t *cur = &el->el_refresh.r_cursor;
-	int i, w = wcwidth(c);
+	int i, w;
 	int sizeh = el->el_terminal.t_size.h;
+
+#if SIZEOF_WCHAR_T == 2
+	/* A supplementary code point is stored as a UTF-16 surrogate pair.
+	 * wcwidth() is undefined on a lone surrogate.  Split the cluster's
+	 * 2-column width across its two wchar_t slots: lead contributes one
+	 * column, trail contributes the other.  Both slots hold actual
+	 * wchar_t data (no MB_FILL_CHAR), so downstream code that walks
+	 * vdisplay can pair them together as one code point. */
+	int is_lead = IS_UTF16_LEAD(c);
+	int is_trail = IS_UTF16_TRAIL(c);
+	if (is_lead || is_trail)
+		w = 1;
+	else
+#endif
+		w = wcwidth(c);
 
 	ELRE_DEBUG(1, __F, "printing %5x '%lc'\r\n", c, c);
 	if (w == -1)
@@ -215,10 +231,22 @@ re_putc(EditLine *el, wint_t c, int shift)
 	 * r_vcursor_h has already reached sizeh — otherwise they end up
 	 * orphaned at the start of the next line, detached from their
 	 * base character. */
-	if (shift && w > 0) {
+	if (shift && w > 0
+#if SIZEOF_WCHAR_T == 2
+	    /* A trail surrogate must stay on the same line as its lead. */
+	    && !is_trail
+#endif
+	    ) {
+#if SIZEOF_WCHAR_T == 2
+		/* A lead surrogate represents a 2-column cluster; check
+		 * straddle against the full cluster width. */
+		int straddle_w = is_lead ? 2 : w;
+#else
+		int straddle_w = w;
+#endif
 		/* If a wide char would straddle the line edge, pad with
 		 * spaces to the end of the current line. */
-		while (el->el_refresh.r_vcursor_h + w > sizeh &&
+		while (el->el_refresh.r_vcursor_h + straddle_w > sizeh &&
 		       el->el_refresh.r_vcursor_h < sizeh) {
 			el->el_vdisplay[cur->v][cur->h] = ' ';
 			cur->h += 1;
@@ -326,7 +354,18 @@ re_refresh(EditLine *el)
 
 	for (cp = st; cp < el->el_line.lastchar; cp++) {
 		if (cp == el->el_line.cursor) {
-                        int w = wcwidth(*cp);
+                        int w;
+#if SIZEOF_WCHAR_T == 2
+			/* If we're on a UTF-16 lead surrogate, decode
+			 * the pair to get the real width; wcwidth() of a
+			 * lone surrogate is undefined. */
+			if (IS_UTF16_LEAD(*cp) &&
+			    cp+1 < el->el_line.lastchar &&
+			    IS_UTF16_TRAIL(cp[1])) {
+				w = wcwidth((wchar_t)utf16_decode(cp[0], cp[1]));
+			} else
+#endif
+				w = wcwidth(*cp);
 			/* save for later */
 			cur.h = el->el_refresh.r_cursor.h;
 			cur.v = el->el_refresh.r_cursor.v;

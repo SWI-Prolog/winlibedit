@@ -114,6 +114,14 @@ typedef struct el_state_t {
 #define BUFFER_SIZE 1024
 #endif
 
+#ifndef SIZEOF_WCHAR_T
+#  ifdef __SIZEOF_WCHAR_T__
+#    define SIZEOF_WCHAR_T __SIZEOF_WCHAR_T__
+#  else
+#    define SIZEOF_WCHAR_T 4
+#  endif
+#endif
+
 struct el_read_t;
 
 struct editline {
@@ -126,6 +134,9 @@ struct editline {
     char   data[BUFFER_SIZE];
     size_t len;
   } out_buffer;
+#endif
+#if SIZEOF_WCHAR_T == 2
+	unsigned	  el_pending_lead; /* UTF-16 lead surrogate queued for output */
 #endif
 #ifndef __WINDOWS__
 	FILE		 *el_infile;	/* Stdio stuff			*/
