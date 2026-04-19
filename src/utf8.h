@@ -85,6 +85,19 @@ extern size_t F_UTF8_ENCLENA(const char *s, size_t len);
 
 #include <stddef.h>			/* get wchar_t */
 
+/* libedit's build system doesn't generate a SIZEOF_WCHAR_T define.
+ * Fall back to the compiler-provided __SIZEOF_WCHAR_T__ (gcc, clang,
+ * MSVC) so the `#if SIZEOF_WCHAR_T == 2` branches below actually fire
+ * on Windows; without this they silently evaluate 0 == 2 and the
+ * surrogate-pair paths are compiled out. */
+#ifndef SIZEOF_WCHAR_T
+#  ifdef __SIZEOF_WCHAR_T__
+#    define SIZEOF_WCHAR_T __SIZEOF_WCHAR_T__
+#  else
+#    define SIZEOF_WCHAR_T 4	/* assume UCS-4 */
+#  endif
+#endif
+
 /* See https://en.wikipedia.org/wiki/UTF-16#Examples */
 
 #define IS_UTF16_LEAD(c)      ((c) >= 0xD800 && (c) <= 0xDBFF)
@@ -149,6 +162,73 @@ get_wchar(const wchar_t *in, int *chr)
   *chr = *in++;
   return in;
 #endif
+}
+
+		 /*******************************
+		 * GRAPHEME-UNIT CODE-POINT API *
+		 *******************************/
+
+/* el_cp_at(p, end, &adv) returns the Unicode code point starting at *p,
+ * using p[1] as a trail surrogate if needed when sizeof(wchar_t) == 2.
+ * Advances by *adv wchar_t units (1 or 2).  On a lone or malformed
+ * surrogate it yields the raw wchar_t value so nothing is silently
+ * dropped.  On Linux (SIZEOF_WCHAR_T == 4) it is always a single-step
+ * dereference.
+ */
+#include <wchar.h>
+#include <wctype.h>
+
+static inline int
+el_cp_at(const wchar_t *p, const wchar_t *end, int *adv)
+{
+#if SIZEOF_WCHAR_T == 2
+  int c = *p;
+  if ( IS_UTF16_LEAD(c) && p+1 < end && IS_UTF16_TRAIL(p[1]) )
+  { *adv = 2;
+    return utf16_decode(c, p[1]);
+  }
+  *adv = 1;
+  return c;
+#else
+  (void)end;
+  *adv = 1;
+  return (int)*p;
+#endif
+}
+
+/* The width / class / printability of the code point starting at *p.
+ * These always decode a surrogate pair when sizeof(wchar_t) == 2 so
+ * wcwidth / iswprint / iswcntrl see a real code point rather than a
+ * lone surrogate half.
+ *
+ * Callers that need wcwidth must include mk_wcwidth.h before this
+ * header so the wrapper resolves to the libedit replacement (Windows
+ * has no libc wcwidth). */
+static inline int
+el_iswprint_at(const wchar_t *p, const wchar_t *end)
+{ int adv;
+  int cp = el_cp_at(p, end, &adv);
+  return iswprint((wchar_t)cp);
+}
+
+static inline int
+el_iswcntrl_at(const wchar_t *p, const wchar_t *end)
+{ int adv;
+  int cp = el_cp_at(p, end, &adv);
+  return iswcntrl((wchar_t)cp);
+}
+
+/* Number of wchar_t units the code point starting at *p occupies. */
+static inline int
+el_cp_width_wchars(const wchar_t *p, const wchar_t *end)
+{
+#if SIZEOF_WCHAR_T == 2
+  if ( IS_UTF16_LEAD(*p) && p+1 < end && IS_UTF16_TRAIL(p[1]) )
+    return 2;
+#else
+  (void)p; (void)end;
+#endif
+  return 1;
 }
 
 #endif /*UTF8_H_INCLUDED*/

@@ -373,6 +373,15 @@ ct_chr_class(wchar_t c)
 	 * unchanged and the terminal attaches them to the preceding base. */
 	else if (!iswcntrl(c) && wcwidth(c) == 0)
 		return CHTYPE_PRINT;
+#if SIZEOF_WCHAR_T == 2
+	/* A UTF-16 surrogate (lead or trail) is half of a supplementary
+	 * code point, not a stand-alone value.  Treat it as printable so
+	 * a non-BMP character like 🤩 (encoded as a pair in the buffer)
+	 * is emitted verbatim and rendered by the terminal as one glyph,
+	 * instead of being expanded to "\U+D83E\U+DD29" escape form. */
+	else if (IS_UTF16_SURROGATE(c))
+		return CHTYPE_PRINT;
+#endif
 	else
 		return CHTYPE_NONPRINT;
 }

@@ -51,21 +51,33 @@ __RCSID("$NetBSD: common.c,v 1.50 2024/06/30 16:29:42 christos Exp $");
 #include "common.h"
 #include "fcns.h"
 #include "mk_wcwidth.h"
+#include "utf8.h"
 #include "parse.h"
 #include "vi.h"
 
 /*
  * Grapheme cluster helpers: step the cursor forward/backward by one
  * user-perceived character (base code point + any following combining marks).
+ *
+ * On Windows (sizeof(wchar_t) == 2), a non-BMP code point occupies a
+ * surrogate pair (two wchar_t), and must be traversed atomically: a
+ * trail surrogate isn't a base of its own and a lead surrogate has no
+ * wcwidth we can trust.  el_cp_width_wchars / IS_UTF16_* handle both.
  */
 static wchar_t *
 el_next_grapheme(wchar_t *cursor, wchar_t *limit)
 {
 	if (cursor >= limit)
 		return cursor;
-	cursor++;			/* skip the base character */
-	while (cursor < limit && wcwidth(*cursor) == 0)
-		cursor++;		/* skip attached combining marks */
+	cursor += el_cp_width_wchars(cursor, limit);	/* skip base cp */
+	/* skip attached combining marks — each one may itself be a pair */
+	while (cursor < limit) {
+		int adv;
+		int cp = el_cp_at(cursor, limit, &adv);
+		if (wcwidth((wchar_t)cp) != 0)
+			break;
+		cursor += adv;
+	}
 	return cursor;
 }
 
@@ -74,10 +86,26 @@ el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
 {
 	if (cursor <= buffer)
 		return cursor;
-	--cursor;			/* step back one code point */
-	/* if we landed on a combining mark, keep backing up to the base */
-	while (cursor > buffer && wcwidth(*cursor) == 0)
+	/* Step back one code point.  On Windows this may be a surrogate
+	 * pair, in which case we land on the trail first and then look
+	 * back at the lead. */
+	--cursor;
+#if SIZEOF_WCHAR_T == 2
+	if (cursor > buffer && IS_UTF16_TRAIL(*cursor) && IS_UTF16_LEAD(cursor[-1]))
 		--cursor;
+#endif
+	/* if we landed on a combining mark, keep backing up to the base */
+	while (cursor > buffer) {
+		int adv;
+		int cp = el_cp_at(cursor, cursor + 2, &adv);
+		if (wcwidth((wchar_t)cp) != 0)
+			break;
+		--cursor;
+#if SIZEOF_WCHAR_T == 2
+		if (cursor > buffer && IS_UTF16_TRAIL(*cursor) && IS_UTF16_LEAD(cursor[-1]))
+			--cursor;
+#endif
+	}
 	return cursor;
 }
 
