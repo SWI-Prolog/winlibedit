@@ -384,11 +384,13 @@ ct_chr_class(wchar_t c)
 	else if (iswprint(c))
 		return CHTYPE_PRINT;
 	/* iswprint() under the MSVC runtime is locale-limited and rejects
-	 * combining marks (wcwidth == 0, not a control char), so NFD input
-	 * like 'a'+U+0300 renders the combiner as "\U+0300" on Windows.
-	 * Classify such code points as printable so they pass through
-	 * unchanged and the terminal attaches them to the preceding base. */
-	else if (!iswcntrl(c) && wcwidth(c) == 0)
+	 * most non-BMP-adjacent code points: not just combining marks
+	 * (wcwidth == 0, e.g. NFD 'a'+U+0300), but also printable symbols
+	 * like U+2764 RED HEART or U+25A0 BLACK SQUARE, which libedit then
+	 * expanded to visible "\U+2764" escape form.  Trust the bundled
+	 * mk_wcwidth (which knows the full Unicode range) and treat any
+	 * non-control code point with a defined width as printable. */
+	else if (!iswcntrl(c) && wcwidth(c) >= 0)
 		return CHTYPE_PRINT;
 #if SIZEOF_WCHAR_T == 2
 	/* A UTF-16 surrogate (lead or trail) is half of a supplementary
