@@ -60,6 +60,7 @@ __RCSID("$NetBSD: read.c,v 1.109 2025/01/03 00:40:08 rillig Exp $");
 #include "el.h"
 #include "fcns.h"
 #include "read.h"
+#include "utf8.h"
 
 #define	EL_MAXMACRO	10
 
@@ -73,6 +74,10 @@ struct el_read_t {
 	struct macros	 macros;
 	el_rfunc_t	 read_char;	/* Function to read a character. */
 	int		 read_errno;
+#if SIZEOF_WCHAR_T == 2
+	wchar_t		 pending_trail;	/* UTF-16 trail surrogate queued
+					 * for the next read_char call */
+#endif
 };
 
 #if !__WINDOWS__
@@ -288,14 +293,40 @@ read_char(EditLine *el, wchar_t *cp)
 {
 #ifdef __WINDOWS__
   DWORD done;
-  char buffer[10];
+  wchar_t buffer[2];
+
+#if SIZEOF_WCHAR_T == 2
+  /* Finish emitting a supplementary code point held over from the
+   * previous call: ReadConsoleW delivers a non-BMP character as two
+   * separate wchar_t reads (lead surrogate, then trail), and libedit
+   * wants both halves in the line buffer adjacently. */
+  if ( el->el_read->pending_trail )
+  { *cp = el->el_read->pending_trail;
+    el->el_read->pending_trail = 0;
+    return 1;
+  }
+#endif
+
   BOOL rc = ReadConsoleW(el->el_hIn,
 			 buffer,
 			 1,
 			 &done,
 			 NULL);
   if ( rc && done )
-  { *cp = ((wchar_t*)buffer)[0];
+  { wchar_t c = buffer[0];
+#if SIZEOF_WCHAR_T == 2
+    /* If this is a UTF-16 lead surrogate, the supplementary code point
+     * arrives as lead+trail on two successive ReadConsoleW calls.
+     * Fetch the trail now and queue it for the next read_char —
+     * otherwise an event that interrupts us between the two reads
+     * could strand the lead. */
+    if ( IS_UTF16_LEAD(c) )
+    { DWORD done2 = 0;
+      if ( ReadConsoleW(el->el_hIn, &buffer[1], 1, &done2, NULL) && done2 )
+	el->el_read->pending_trail = buffer[1];
+    }
+#endif
+    *cp = c;
     return 1;
   } else
   { return 0;
