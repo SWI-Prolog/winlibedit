@@ -114,6 +114,23 @@ ct_encode_string(const wchar_t *s, ct_buffer_t *conv)
 		}
 		if (!*s)
 			break;
+#if SIZEOF_WCHAR_T == 2
+		/* On Windows, a non-BMP code point is stored as a UTF-16
+		 * surrogate pair.  Encode the whole code point as one
+		 * 4-byte UTF-8 sequence; encoding each half independently
+		 * produces CESU-8 (two 3-byte sequences for U+D8xx and
+		 * U+DCxx), which consumers decode as two lone surrogates
+		 * and then reject (e.g., PL string_codes/2 refuses a lone
+		 * surrogate code). */
+		if (IS_UTF16_LEAD(s[0]) && IS_UTF16_TRAIL(s[1])) {
+			int cp = utf16_decode((int)s[0], (int)s[1]);
+			char *end = utf8_put_char(dst, cp);
+			used = end - dst;
+			s += 2;
+			dst += used;
+			continue;
+		}
+#endif
 		used = ct_encode_char(dst, (size_t)5, *s);
 		if (used == -1) /* failed to encode, need more buffer space */
 			abort();
