@@ -886,7 +886,13 @@ history_save_fp(TYPE(History) *h, size_t nelem, FILE *fp)
 			}
 			ptr = nptr;
 		}
-		(void) strvis(ptr, str, VIS_WHITE);
+		/* VIS_NOLOCALE forces byte-level escaping so UTF-8 bytes in
+		 * `str` round-trip exactly.  Without it, strvis on Windows
+		 * drops into its locale MB→WC→MB path (mbsrtowcs with the C
+		 * locale / CP_ACP), which garbles non-ASCII bytes — a saved
+		 * 4-byte UTF-8 supplementary code point can come back as two
+		 * unrelated BMP code points after the roundtrip. */
+		(void) strvis(ptr, str, VIS_WHITE | VIS_NOLOCALE);
 		(void) fprintf(fp, "%s\n", ptr);
 	}
 oomem:
