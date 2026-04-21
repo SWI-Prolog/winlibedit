@@ -1121,7 +1121,53 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 libedit_private int
 terminal_change_size(EditLine *el, int lins, int cols)
 {
-	coord_t cur = el->el_cursor;
+	/* Rewind the physical cursor to the start of the current input
+	 * line and wipe every row of the pre-resize wrap before we reset
+	 * libedit's internal display model to (0,0).
+	 *
+	 * A modern reflowing terminal (xterm w/ rewrap, terminator, gnome-
+	 * terminal, xpce's rlc, ...) has already re-wrapped the prompt +
+	 * input to the new width by the time SIGWINCH reaches us, so the
+	 * physical cursor is at a row/col determined by the NEW column
+	 * count — not the el_cursor.v tracked from the pre-resize layout.
+	 * Walk the input buffer from the prompt with the new `cols` to
+	 * compute where the cursor actually is (its row offset below the
+	 * prompt row) and move up by that amount.  For a non-reflowing
+	 * terminal the computation still gives a sensible value as long
+	 * as the terminal preserves "cursor at end of input" across
+	 * resizes (which well-behaved terminals do even without reflow).
+	 *
+	 * Skipped when both the pre-resize display had no multi-row
+	 * activity (r_oldcv == 0) AND the reflowed cursor stays on the
+	 * prompt row (new_v == 0): no input spans more than one row, so
+	 * re_refresh's CR is enough.  On initial terminal_init the input
+	 * buffer is empty and new_v == 0 — we must not touch the screen,
+	 * which may hold unrelated banner content. */
+	{
+		int new_h, new_v;
+
+		re_cursor_at_width(el, cols, &new_h, &new_v);
+
+		if (el->el_refresh.r_oldcv > 0 || new_v > 0) {
+			if (new_v > 0) {
+				if (GoodStr(T_UP) &&
+				    (new_v > 1 || !GoodStr(T_up)))
+					terminal_tputs(el,
+					    tgoto(Str(T_UP), new_v, new_v),
+					    new_v);
+				else if (GoodStr(T_up))
+					for (int i = 0; i < new_v; i++)
+						terminal_tputs(el,
+						    Str(T_up), 1);
+			}
+			terminal__putc(el, '\r');
+			if (GoodStr(T_cd))
+				terminal_tputs(el, Str(T_cd), Val(T_li));
+			else
+				re_clear_lines(el);
+		}
+	}
+
 	/*
 	 * Just in case
 	 */
@@ -1132,7 +1178,6 @@ terminal_change_size(EditLine *el, int lins, int cols)
 	if (terminal_rebuffer_display(el) == -1)
 		return -1;
 	re_clear_display(el);
-	el->el_cursor = cur;
 	return 0;
 }
 

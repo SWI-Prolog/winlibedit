@@ -1250,6 +1250,71 @@ re__copy_and_pad(wchar_t *dst, const wchar_t *src, size_t width)
 }
 
 
+/* re_cursor_at_width():
+ *	Without drawing anything, compute where the logical cursor would
+ *	land if the prompt + input were reflowed to `target_cols` columns.
+ *	Mirrors the walk in re_refresh_cursor so a caller that knows the
+ *	new width (e.g. terminal_change_size on SIGWINCH from a reflowing
+ *	terminal) can move the physical cursor to the reflowed input-start
+ *	row without assuming the terminal preserved the pre-resize layout.
+ */
+libedit_private void
+re_cursor_at_width(EditLine *el, int target_cols, int *out_h, int *out_v)
+{
+	wchar_t *cp;
+	int h, v, w;
+
+	if (target_cols < 1)
+		target_cols = 1;
+
+	h = el->el_prompt.p_pos.h;
+	v = el->el_prompt.p_pos.v;
+	/* If the prompt itself was wrapped at the old width, its stored
+	 * p_pos.h may still fit in the new width — leave it alone.  But if
+	 * the prompt plus its starting column exceeds the new width, push
+	 * down to the next row. */
+	while (h >= target_cols) {
+		h -= target_cols;
+		v++;
+	}
+
+	for (cp = el->el_line.buffer; cp < el->el_line.cursor; cp++) {
+		switch (ct_chr_class(*cp)) {
+		case CHTYPE_NL:
+			h = 0;
+			v++;
+			break;
+		case CHTYPE_TAB:
+			while (++h & 07)
+				continue;
+			break;
+		default:
+			w = wcwidth(*cp);
+			if (w > 1 && h + w > target_cols) {
+				h = 0;
+				v++;
+			}
+			h += ct_visual_width(*cp);
+			break;
+		}
+
+		if (h >= target_cols) {
+			h -= target_cols;
+			v++;
+		}
+	}
+
+	if (cp < el->el_line.lastchar && (w = wcwidth(*cp)) > 1)
+		if (h + w > target_cols) {
+			h = 0;
+			v++;
+		}
+
+	*out_h = h;
+	*out_v = v;
+}
+
+
 /* re_refresh_cursor():
  *	Move to the new cursor position
  */

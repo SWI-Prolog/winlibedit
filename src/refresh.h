@@ -57,6 +57,7 @@ libedit_private void	re_clear_lines(EditLine *);
 libedit_private void	re_clear_display(EditLine *);
 libedit_private void	re_refresh(EditLine *);
 libedit_private void	re_refresh_cursor(EditLine *);
+libedit_private void	re_cursor_at_width(EditLine *, int, int *, int *);
 libedit_private void	re_fastaddc(EditLine *);
 libedit_private void	re_goto_bottom(EditLine *);
 
