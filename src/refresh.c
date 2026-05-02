@@ -362,7 +362,7 @@ re_refresh(EditLine *el)
 			if (IS_UTF16_LEAD(*cp) &&
 			    cp+1 < el->el_line.lastchar &&
 			    IS_UTF16_TRAIL(cp[1])) {
-				w = wcwidth((wchar_t)utf16_decode(cp[0], cp[1]));
+				w = wcwidth((uchar_t)utf16_decode(cp[0], cp[1]));
 			} else
 #endif
 				w = wcwidth(*cp);
@@ -1472,7 +1472,7 @@ re_fastputc(EditLine *el, wint_t c)
 			if ((wint_t)line[cpidx] == MB_FILL_CHAR) {
 				cpidx++; continue;
 			}
-			cw = wcwidth((wchar_t)line[cpidx]);
+			cw = wcwidth((uchar_t)line[cpidx]);
 			if (cw < 0) cw = 1;
 			if (cw > 0) {
 				vis += cw;
@@ -1481,7 +1481,7 @@ re_fastputc(EditLine *el, wint_t c)
 				 * placeholder following this base char */
 				while (cpidx < (int)EL_BUFSIZ &&
 				    line[cpidx] != L'\0' &&
-				    (wcwidth((wchar_t)line[cpidx]) == 0 ||
+				    (wcwidth((uchar_t)line[cpidx]) == 0 ||
 				    (wint_t)line[cpidx] == MB_FILL_CHAR))
 					cpidx++;
 			} else {

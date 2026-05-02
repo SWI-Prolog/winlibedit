@@ -637,7 +637,7 @@ mc_again:
 						    MB_FILL_CHAR) {
 							idx++; continue;
 						}
-						w = wcwidth((wchar_t)line[idx]);
+						w = wcwidth((uchar_t)line[idx]);
 						if (w < 0) w = 1;
 						vis += w;
 						idx++;
@@ -647,7 +647,7 @@ mc_again:
 						if (w > 0) {
 							while (idx < (int)EL_BUFSIZ
 							    && line[idx] != L'\0' &&
-							    (wcwidth((wchar_t)line[idx])
+							    (wcwidth((uchar_t)line[idx])
 							    == 0 || (wint_t)line[idx]
 							    == MB_FILL_CHAR))
 								idx++;
@@ -664,7 +664,7 @@ mc_again:
 						    MB_FILL_CHAR) {
 							idx++; continue;
 						}
-						w = wcwidth((wchar_t)line[idx]);
+						w = wcwidth((uchar_t)line[idx]);
 						if (w <= 0) { idx++; continue; }
 						terminal__putc(el,
 						    (wchar_t)line[idx++]);
@@ -673,7 +673,7 @@ mc_again:
 						 * MB_FILL_CHAR without writing */
 						while (idx < (int)EL_BUFSIZ &&
 						    line[idx] != L'\0' &&
-						    (wcwidth((wchar_t)line[idx])
+						    (wcwidth((uchar_t)line[idx])
 						    == 0 || (wint_t)line[idx]
 						    == MB_FILL_CHAR))
 							terminal__putc(el,

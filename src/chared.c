@@ -210,7 +210,7 @@ ce__isword(EditLine *el, wint_t p)
 	 * Treat them as word chars so word navigation over NFD text
 	 * (e.g. 'a'+U+0300 = 'à') doesn't stop between the base and its
 	 * combiner. */
-	if (!iswcntrl((wchar_t)p) && wcwidth((wchar_t)p) == 0)
+	if (!iswcntrl((wchar_t)p) && wcwidth((uchar_t)p) == 0)
 		return 1;
 	return iswalnum(p) || wcschr(el->el_map.wordchars, p) != NULL;
 }
@@ -224,7 +224,7 @@ cv__isword(EditLine *el, wint_t p)
 {
 	/* Combining marks: see ce__isword().  Tag them as type-1 ("word") so
 	 * they stay attached to the preceding alnum char during navigation. */
-	if (!iswcntrl((wchar_t)p) && wcwidth((wchar_t)p) == 0)
+	if (!iswcntrl((wchar_t)p) && wcwidth((uchar_t)p) == 0)
 		return 1;
 	if (iswalnum(p) || wcschr(el->el_map.wordchars, p) != NULL)
 		return 1;

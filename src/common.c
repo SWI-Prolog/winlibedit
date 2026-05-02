@@ -74,7 +74,7 @@ el_next_grapheme(wchar_t *cursor, wchar_t *limit)
 	while (cursor < limit) {
 		int adv;
 		int cp = el_cp_at(cursor, limit, &adv);
-		if (wcwidth((wchar_t)cp) != 0)
+		if (wcwidth((uchar_t)cp) != 0)
 			break;
 		cursor += adv;
 	}
@@ -98,7 +98,7 @@ el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
 	while (cursor > buffer) {
 		int adv;
 		int cp = el_cp_at(cursor, cursor + 2, &adv);
-		if (wcwidth((wchar_t)cp) != 0)
+		if (wcwidth((uchar_t)cp) != 0)
 			break;
 		--cursor;
 #if SIZEOF_WCHAR_T == 2
