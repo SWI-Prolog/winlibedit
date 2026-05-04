@@ -101,10 +101,10 @@ read_init(EditLine *el)
 		return -1;
 
 	ma = &el->el_read->macros;
-	if ((ma->macro = el_calloc(EL_MAXMACRO, sizeof(*ma->macro))) == NULL)
-		goto out;
 	ma->level = -1;
 	ma->offset = 0;
+	if ((ma->macro = el_calloc(EL_MAXMACRO, sizeof(*ma->macro))) == NULL)
+		goto out;
 
 	/* builtin read_char */
 	el->el_read->read_char = read_char;
