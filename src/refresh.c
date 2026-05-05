@@ -670,6 +670,13 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
  * Convert a code-point index in a display array to a visual-column count.
  * Combining marks (wcwidth == 0) occupy a code-point slot but no visual
  * column; double-wide chars (wcwidth == 2) occupy two columns.
+ *
+ * MB_FILL_CHAR (the right-half placeholder for a wide char) must be
+ * skipped here.  On Linux the system wcwidth() returns -1 for it and
+ * the `w > 0` filter is enough; on Windows mk_wcwidth(0xFFFF) returns
+ * the default 1, so without an explicit skip every wide char would
+ * count as 3 columns instead of 2 and the cursor would land too far
+ * right by one column per wide char on the line.
  */
 static int
 display_vcol(const wchar_t *line, int cpidx)
@@ -677,7 +684,10 @@ display_vcol(const wchar_t *line, int cpidx)
 	int col = 0, i;
 
 	for (i = 0; i < cpidx && line[i] != L'\0'; i++) {
-		int w = wcwidth(line[i]);
+		int w;
+		if ((wint_t)line[i] == MB_FILL_CHAR)
+			continue;
+		w = wcwidth(line[i]);
 		if (w > 0)
 			col += w;
 	}
