@@ -199,6 +199,14 @@ int mk_wcwidth(uchar_t ucs)
       (ucs >= 0xfe30 && ucs <= 0xfe6f) || /* CJK Compatibility Forms */
       (ucs >= 0xff00 && ucs <= 0xff60) || /* Fullwidth Forms */
       (ucs >= 0xffe0 && ucs <= 0xffe6) ||
+      /* Modern wide blocks added since the original Markus Kuhn table
+       * (2007).  Without these, emoji and pictographs report width 1
+       * here while terminal renderers paint them in two cells, which
+       * leaves cursor tracking off by one column per glyph. */
+      (ucs >= 0x1F004 && ucs <= 0x1F0CF) || /* Mahjong / Domino tiles */
+      (ucs >= 0x1F300 && ucs <= 0x1F9FF) || /* Misc Pictographs, Emoticons,
+					     * Transport, Symbols, Supplemental */
+      (ucs >= 0x1FA70 && ucs <= 0x1FAFF) || /* Symbols Extended-A */
       (ucs >= 0x20000 && ucs <= 0x2fffd) ||
       (ucs >= 0x30000 && ucs <= 0x3fffd)));
 }
