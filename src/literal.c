@@ -44,7 +44,6 @@ __RCSID("$NetBSD: literal.c,v 1.6 2024/12/05 22:21:53 christos Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include "el.h"
-#include "mk_wcwidth.h"
 
 libedit_private void
 literal_init(EditLine *el)

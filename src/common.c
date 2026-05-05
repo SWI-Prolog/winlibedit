@@ -50,7 +50,6 @@ __RCSID("$NetBSD: common.c,v 1.50 2024/06/30 16:29:42 christos Exp $");
 #include "el.h"
 #include "common.h"
 #include "fcns.h"
-#include "mk_wcwidth.h"
 #include "utf8.h"
 #include "parse.h"
 #include "vi.h"

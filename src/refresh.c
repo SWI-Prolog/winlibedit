@@ -52,7 +52,6 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 #endif
 
 #include "el.h"
-#include "mk_wcwidth.h"
 #include "utf8.h"
 
 #ifdef LIBEDIT_TRACE

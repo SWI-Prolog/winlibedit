@@ -244,6 +244,10 @@ el_set(EditLine *el, int op, ...)
 		ret = el_wset(el, op, va_arg(ap, el_rfunc_t));
 		break;
 
+	case EL_WCWIDTH:        /* el_wcwfunc_t */
+		ret = el_wset(el, op, va_arg(ap, el_wcwfunc_t));
+		break;
+
 	case EL_CLIENTDATA:     /* void * */
 		ret = el_wset(el, op, va_arg(ap, void *));
 		break;
@@ -337,6 +341,10 @@ el_get(EditLine *el, int op, ...)
 
 	case EL_GETCFN:         /* el_rfunc_t */
 		ret = el_wget(el, op, va_arg(ap, el_rfunc_t *));
+		break;
+
+	case EL_WCWIDTH:        /* el_wcwfunc_t * */
+		ret = el_wget(el, op, va_arg(ap, el_wcwfunc_t *));
 		break;
 
 	case EL_CLIENTDATA:     /* void ** */

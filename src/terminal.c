@@ -90,7 +90,6 @@ extern char* tgetstr(char*, char**);
 
 #include "el.h"
 #include "fcns.h"
-#include "mk_wcwidth.h"
 #include "utf8.h"
 #include <stdbool.h>
 

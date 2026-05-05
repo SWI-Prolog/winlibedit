@@ -383,6 +383,14 @@ el_wset(EditLine *el, int op, ...)
 		break;
 	}
 
+	case EL_WCWIDTH:
+	{
+		el_wcwfunc_t fn = va_arg(ap, el_wcwfunc_t);
+		libedit_wcwidth = fn ? fn : default_wcwidth;
+		rv = 0;
+		break;
+	}
+
 	case EL_CLIENTDATA:
 		el->el_data = va_arg(ap, void *);
 		break;
@@ -530,6 +538,11 @@ el_wget(EditLine *el, int op, ...)
 
 	case EL_GETSZFN:
 		*va_arg(ap, el_szfunc_t *) = el_terminal_getfn(&el->el_terminal);
+		rv = 0;
+		break;
+
+	case EL_WCWIDTH:
+		*va_arg(ap, el_wcwfunc_t *) = libedit_wcwidth;
 		rv = 0;
 		break;
 

@@ -122,6 +122,18 @@ typedef struct el_state_t {
 #  endif
 #endif
 
+/* 32-bit Unicode code point.  Used by every libedit caller of
+ * wcwidth() to widen a wchar_t (which is 16 bits on Windows) to a
+ * full Unicode code point before width lookup.  Guarded so xpce's
+ * matching definition (h/charwidth.h) does not collide.  Note:
+ * collides with Solaris/illumos `<sys/types.h>`'s `unsigned char`
+ * definition — those are not supported platforms. */
+#include <stdint.h>
+#ifndef UCHAR_T_DEFINED
+#define UCHAR_T_DEFINED
+typedef uint32_t uchar_t;
+#endif
+
 struct el_read_t;
 
 struct editline {
@@ -184,6 +196,18 @@ extern void rtlog_wcs(const char *label, const wchar_t *s);
 # define rtlog(...)       ((void)0)
 # define rtlog_wcs(l, s)  ((void)0)
 #endif
+
+/* Pluggable wcwidth.  The library-global function pointer is set by
+ * el_set(EL_WCWIDTH, fn); embedders inject a host implementation
+ * (SWI-Prolog wires PL_wcwidth here) so libedit's column tracking
+ * matches whatever Unicode table the host uses elsewhere.  All
+ * libedit-internal callers use the wcwidth() macro below; it
+ * compiles to a single indirect call through libedit_wcwidth.  See
+ * src/wcwidth.c for the default fallback. */
+extern el_wcwfunc_t libedit_wcwidth;
+libedit_private int default_wcwidth(int c);
+#undef wcwidth
+#define wcwidth(c) (libedit_wcwidth((int)(c)))
 
 libedit_private int	el_editmode(EditLine *, int, const wchar_t **);
 #ifdef __WINDOWS__

@@ -94,7 +94,7 @@ add_custom_target(generate_headers DEPENDS ${GENERATED_HEADERS})
 set(LIBEDIT_SOURCES
     chared.c common.c el.c eln.c emacs.c hist.c keymacro.c map.c chartype.c parse.c
     prompt.c read.c refresh.c search.c sig.c terminal.c tty.c vi.c
-    reallocarr.c tokenizer.c tokenizern.c mk_wcwidth.c
+    reallocarr.c tokenizer.c tokenizern.c wcwidth.c
     history.c historyn.c filecomplete.c readline.c chared.h literal.c
     el.h hist.h histedit.h keymacro.h map.h chartype.h parse.h prompt.h
     read.h refresh.h search.h sig.h sys.h terminal.h tty.h vis.h
@@ -118,6 +118,7 @@ check_symbol_exists(getpwuid_r "pwd.h" HAVE_GETPW_R_POSIX)
 check_symbol_exists(isascii "ctype.h" HAVE_ISASCII)
 check_symbol_exists(secure_getenv "stdlib.h" HAVE_SECURE_GETENV)
 check_symbol_exists(wcsdup "wchar.h" HAVE_WCSDUP)
+check_symbol_exists(wcwidth "wchar.h" HAVE_WCWIDTH)
 
 include(CheckIncludeFile)
 check_include_file("stdint.h" HAVE_STDINT_H)

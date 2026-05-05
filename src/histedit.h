@@ -177,6 +177,7 @@ unsigned char	_el_fn_sh_complete(EditLine *, int);
 #define EL_WORDCHARS    26      /* , const Char *);                   set/get */
 #define	EL_GETSZFN	27	/* , el_szfunc_t);		      set/get */
 #define	EL_GETHANDLE	28	/* , int, HANDLE **);		      get */
+#define	EL_WCWIDTH	29	/* , el_wcwfunc_t);		      set/get */
 
 #define	EL_BUILTIN_GETCFN	(NULL)
 
@@ -289,6 +290,7 @@ typedef struct lineinfow {
 
 typedef int	(*el_rfunc_t)(EditLine *, wchar_t *);
 typedef int	(*el_szfunc_t)(EditLine *, int *cols, int *rows);
+typedef int	(*el_wcwfunc_t)(int);	/* width in cells of a code point */
 
 const wchar_t	*el_wgets(EditLine *, int *);
 int		 el_wgetc(EditLine *, wchar_t *);

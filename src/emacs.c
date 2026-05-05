@@ -49,7 +49,6 @@ __RCSID("$NetBSD: emacs.c,v 1.38 2024/06/29 17:28:07 christos Exp $");
 #include "el.h"
 #include "emacs.h"
 #include "fcns.h"
-#include "mk_wcwidth.h"
 
 /* el_prev_grapheme / el_next_grapheme are declared in chared.h and
  * defined in common.c.  Earlier emacs.c had its own static copies that
