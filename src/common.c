@@ -558,8 +558,18 @@ ed_delete_prev_char(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (el->el_line.cursor <= el->el_line.buffer)
 		return CC_ERROR;
 
-	c_delbefore(el, el->el_state.argument);
-	el->el_line.cursor -= el->el_state.argument;
+	/* Delete one GRAPHEME at a time, not one wchar_t.  On Windows a
+	 * non-BMP code point lives in the buffer as a UTF-16 surrogate
+	 * pair (two wchar_t slots); chopping just one slot leaves an
+	 * orphan surrogate behind. */
+	int i = el->el_state.argument;
+	while (i-- > 0 && el->el_line.cursor > el->el_line.buffer) {
+		wchar_t *prev = el_prev_grapheme(el->el_line.cursor,
+		    el->el_line.buffer);
+		int n = (int)(el->el_line.cursor - prev);
+		c_delbefore(el, n);
+		el->el_line.cursor = prev;
+	}
 	if (el->el_line.cursor < el->el_line.buffer)
 		el->el_line.cursor = el->el_line.buffer;
 	return CC_REFRESH;
