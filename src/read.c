@@ -368,7 +368,6 @@ read_char(EditLine *el, wchar_t *cp)
 		return 0;
 	}
 
-	fprintf(stderr, "Byte %d\n", cbuf[cbp]);
 	for (;;) {
 		mbstate_t mbs;
 
@@ -400,7 +399,6 @@ read_char(EditLine *el, wchar_t *cp)
 			goto again;
 		default:
 			/* Valid character, process it. */
-			fprintf(stderr, "Got %d\n", (int)*cp);
 			if ( *cp == '\r' ) *cp = '\n';
 			return 1;
 		}
