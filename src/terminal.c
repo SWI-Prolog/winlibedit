@@ -736,7 +736,36 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
         do {
                 /* terminal__putc() ignores any MB_FILL_CHARs */
                 wchar_t _c = *cp++;
-                int _w = wcwidth(_c);
+                int _w;
+#if SIZEOF_WCHAR_T == 2
+                /* On Windows a non-BMP code point is split across two
+                 * wchar_t slots (UTF-16 surrogate pair).  terminal__putc()
+                 * buffers the lead and only emits bytes when the trail
+                 * arrives, so the cursor must advance by the WCWIDTH OF
+                 * THE DECODED CODE POINT, applied AFTER the trail — not
+                 * by wcwidth() of the lead (whose return is undefined).
+                 *
+                 * If the lead is the last slot in cp[0..n) we are mid-
+                 * cluster: emit it (buffered) but DO NOT advance the
+                 * cursor — no glyph has been painted.  re_overwrite_nc()
+                 * extends the call through any following trail surrogate
+                 * to keep the pair atomic. */
+                if (IS_UTF16_LEAD(_c) && n > 1 && IS_UTF16_TRAIL(*cp)) {
+                        wchar_t _t = *cp++;
+                        terminal__putc(el, _c);
+                        terminal__putc(el, _t);
+                        n--;
+                        _w = wcwidth((uchar_t)utf16_decode(_c, _t));
+                        if (_w > 0)
+                                el->el_cursor.h += _w;
+                        continue;
+                }
+                if (IS_UTF16_LEAD(_c)) {
+                        terminal__putc(el, _c); /* buffered, no glyph yet */
+                        continue;
+                }
+#endif
+                _w = wcwidth(_c);
                 terminal__putc(el, _c);
                 /* Combining marks (w==0) and MB_FILL_CHARs (w==0) do not
                  * advance the visual cursor; double-wide chars advance by 2. */

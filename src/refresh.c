@@ -638,6 +638,14 @@ re_clear_eol(EditLine *el, int fx, int sx, int diff)
  *	that we don't leave a bare base character in the last terminal
  *	cell of the written region.  Combining marks do not advance the
  *	visual cursor, so el_cursor.h is not updated for them.
+ *
+ *	On Windows the same treatment applies to a UTF-16 trail surrogate
+ *	that follows a lead on the boundary of the written range: the
+ *	pair encodes a single code point and terminal__putc() only emits
+ *	the bytes when the trail arrives.  Without this extension the
+ *	lead is buffered in pending_lead, no glyph is painted, and yet
+ *	terminal_overwrite() bumps el_cursor.h — leaving libedit's
+ *	tracking ahead of the physical cursor by one column.
  */
 static void
 re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
@@ -646,6 +654,12 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
 
 	if (n == 0)
 		return;
+#if SIZEOF_WCHAR_T == 2
+	/* Extend n through a trailing trail surrogate so terminal_overwrite
+	 * sees the whole pair and can advance the cursor correctly. */
+	if (n > 0 && IS_UTF16_LEAD(cp[n-1]) && IS_UTF16_TRAIL(cp[n]))
+		n++;
+#endif
 	terminal_overwrite(el, cp, n);
 	for (p = cp + n; *p != L'\0' && wcwidth(*p) == 0; p++)
 		terminal__putc(el, *p);
@@ -723,9 +737,18 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	 * the PREVIOUS visual column (cell-1 semantics).  Also snap
 	 * through the wide-char placeholder so a diff inside a wide cluster
 	 * treats the cluster atomically.
+	 *
+	 * On Windows, also snap back through a UTF-16 trail surrogate when
+	 * the slot before is a lead — the pair is one code point and
+	 * splitting it would emit a half-glyph or move the cursor through a
+	 * cell that has no rendered character.
 	 */
 	while (ofd > old &&
-	       (wcwidth(*ofd) == 0 || *ofd == MB_FILL_CHAR)) {
+	       (wcwidth(*ofd) == 0 || *ofd == MB_FILL_CHAR
+#if SIZEOF_WCHAR_T == 2
+	        || (IS_UTF16_TRAIL(*ofd) && IS_UTF16_LEAD(ofd[-1]))
+#endif
+	       )) {
 		ofd--;
 		nfd--;
 	}
