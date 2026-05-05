@@ -55,6 +55,60 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 #include "mk_wcwidth.h"
 #include "utf8.h"
 
+#ifdef LIBEDIT_TRACE
+/* Refresh / cursor trace, runtime-gated by EL_REFRESH_TRACE env var.
+ * Build with -DLIBEDIT_TRACE to compile in; otherwise rtlog and
+ * rtlog_wcs are macros that compile away (see el.h).  Used to diagnose
+ * cursor / move-by-one bugs around UTF-16 surrogate pairs. */
+#include <stdarg.h>
+static FILE *el_trace_fp = NULL;
+static int   el_trace_enabled = -1;	/* -1 = uninitialised */
+
+static void
+el_trace_init(void)
+{ const char *env = getenv("EL_REFRESH_TRACE");
+  if ( env && *env )
+  { const char *path = (env[0] == '1' && env[1] == '\0')
+		     ? "el-refresh.log" : env;
+    el_trace_fp = fopen(path, "w");
+    el_trace_enabled = (el_trace_fp != NULL);
+  } else
+  { el_trace_enabled = 0;
+  }
+}
+
+void
+rtlog(const char *fmt, ...)
+{ if ( el_trace_enabled == -1 )
+    el_trace_init();
+  if ( !el_trace_enabled )
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(el_trace_fp, fmt, ap);
+  va_end(ap);
+  fflush(el_trace_fp);
+}
+
+void
+rtlog_wcs(const char *label, const wchar_t *s)
+{ if ( el_trace_enabled == -1 )
+    el_trace_init();
+  if ( !el_trace_enabled )
+    return;
+  fprintf(el_trace_fp, "  %s: \"", label);
+  for(int i = 0; s[i] && i < 200; i++)
+  { wchar_t c = s[i];
+    if ( c >= 0x20 && c < 0x7f )
+      fputc((char)c, el_trace_fp);
+    else
+      fprintf(el_trace_fp, "[%04X]", (unsigned)c);
+  }
+  fprintf(el_trace_fp, "\"\n");
+  fflush(el_trace_fp);
+}
+#endif /* LIBEDIT_TRACE */
+
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);
 static int	display_vcol(const wchar_t *, int);
@@ -294,6 +348,12 @@ re_refresh(EditLine *el)
 #ifdef notyet
 	size_t termsz;
 #endif
+	rtlog("=== re_refresh entry el_cursor=(v=%d h=%d) "
+	      "line.cursor=%td line.lastchar=%td ===\n",
+	      el->el_cursor.v, el->el_cursor.h,
+	      el->el_line.cursor - el->el_line.buffer,
+	      el->el_line.lastchar - el->el_line.buffer);
+	rtlog_wcs("buffer", el->el_line.buffer);
 
 	/* re_fastputc may have deferred a wrap so a following combining
 	 * mark could attach to the base it just drew.  A full refresh
@@ -487,10 +547,15 @@ re_refresh(EditLine *el)
 	    "\r\ncursor.h = %d, cursor.v = %d, cur.h = %d, cur.v = %d\r\n",
 	    el->el_refresh.r_cursor.h, el->el_refresh.r_cursor.v,
 	    cur.h, cur.v);
+	rtlog("re_refresh: final move to (v=%d, h=%d) "
+	      "[el_cursor was (v=%d, h=%d)]\n",
+	      cur.v, cur.h, el->el_cursor.v, el->el_cursor.h);
 	terminal_move_to_line(el, cur.v);	/* go to where the cursor is */
 	/* cur.h was converted to a visual column above, before re_update_line
 	 * could modify el_vdisplay */
 	terminal_move_to_char(el, cur.h);
+	rtlog("re_refresh: end (el_cursor v=%d h=%d)\n",
+	      el->el_cursor.v, el->el_cursor.h);
 }
 
 
@@ -727,6 +792,11 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	wchar_t *osb, *ose, *nsb, *nse;
 	int fx, sx;
 	size_t len;
+
+	rtlog("re_update_line(row=%d) entry el_cursor=(v=%d h=%d)\n",
+	      i, el->el_cursor.v, el->el_cursor.h);
+	rtlog_wcs("old", old);
+	rtlog_wcs("new", new);
 
 	/*
          * find first diff
@@ -1069,6 +1139,10 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	} else if (fx < 0) {
 		ELRE_DEBUG(1,
 		    __F, "first diff delete at %td...\r\n", ofd - old);
+		rtlog("re_update_line: 1st-diff delete: ofd=%td "
+		      "vcol=%d el_cursor.h=%d fx=%d\n",
+		      ofd - old, display_vcol(old, (int)(ofd - old)),
+		      el->el_cursor.h, fx);
 		/*
 		 * move to the first char to delete where the first diff is
 		 */
@@ -1095,16 +1169,32 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				     display_vcol(old, (int)(ofd - old))) -
 				    (display_vcol(new, (int)(nsb - new)) -
 				     display_vcol(new, (int)(nfd - new)));
+				rtlog("  del_vcols=%d (calling deletechars)\n",
+				      del_vcols);
 				if (del_vcols > 0)
 					terminal_deletechars(el, del_vcols);
+				rtlog("  after deletechars el_cursor.h=%d\n",
+				      el->el_cursor.h);
 				re_delete(el, old, (int)(ofd - old),
 				    el->el_terminal.t_size.h, -fx);
 			}
 			/*
 			 * write (nsb-nfd) chars of new starting at nfd
 			 */
+			rtlog("  diff state: ofd=%td osb=%td ose=%td "
+			      "ols=%td oe=%td\n",
+			      ofd - old, osb - old, ose - old,
+			      ols - old, oe - old);
+			rtlog("              nfd=%td nsb=%td nse=%td "
+			      "nls=%td ne=%td\n",
+			      nfd - new, nsb - new, nse - new,
+			      nls - new, ne - new);
 			len = (size_t) (nsb - nfd);
+			rtlog("  re_overwrite_nc len=%zu el_cursor.h=%d\n",
+			      len, el->el_cursor.h);
 			re_overwrite_nc(el, nfd, len);
+			rtlog("  after re_overwrite_nc el_cursor.h=%d\n",
+			      el->el_cursor.h);
 			re__strncopy(ofd, nfd, len);
 
 		} else {
@@ -1357,6 +1447,11 @@ re_refresh_cursor(EditLine *el)
 	wchar_t *cp;
 	int h, v, th, w;
 
+	rtlog("=== re_refresh_cursor entry el_cursor=(v=%d h=%d) "
+	      "line.cursor=%td ===\n",
+	      el->el_cursor.v, el->el_cursor.h,
+	      el->el_line.cursor - el->el_line.buffer);
+
 	/* Same reason as re_refresh: settle any deferred wrap before
 	 * computing where the cursor should go. */
 	if (el->el_refresh.r_wrap_pending)
@@ -1410,9 +1505,12 @@ re_refresh_cursor(EditLine *el)
                 }
 
 	/* now go there */
+	rtlog("re_refresh_cursor: target (v=%d h=%d)\n", v, h);
 	terminal_move_to_line(el, v);
 	terminal_move_to_char(el, h);
 	terminal__flush(el);
+	rtlog("=== re_refresh_cursor exit el_cursor=(v=%d h=%d) ===\n",
+	      el->el_cursor.v, el->el_cursor.h);
 }
 
 

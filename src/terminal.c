@@ -553,9 +553,14 @@ terminal_move_to_char(EditLine *el, int where)
 {
 	int del, i;
 
+	rtlog("terminal_move_to_char(where=%d) entry el_cursor=(v=%d h=%d)\n",
+	      where, el->el_cursor.v, el->el_cursor.h);
+
 mc_again:
-	if (where == el->el_cursor.h)
+	if (where == el->el_cursor.h) {
+		rtlog("  no-op (already there)\n");
 		return;
+	}
 
 	if (where > el->el_terminal.t_size.h) {
 #ifdef DEBUG_SCREEN
@@ -702,12 +707,15 @@ mc_again:
 					el->el_cursor.h = 0;
 					goto mc_again;	/* and try again */
 				}
+				rtlog("  emitting %d \\b's\n", -del);
 				for (i = 0; i < -del; i++)
 					terminal__putc(el, '\b');
 			}
 		}
 	}
 	el->el_cursor.h = where;		/* now where is here */
+	rtlog("terminal_move_to_char exit el_cursor=(v=%d h=%d)\n",
+	      el->el_cursor.v, el->el_cursor.h);
 }
 
 
@@ -806,6 +814,8 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 libedit_private void
 terminal_deletechars(EditLine *el, int num)
 {
+	rtlog("terminal_deletechars(num=%d) entry el_cursor=(v=%d h=%d)\n",
+	      num, el->el_cursor.v, el->el_cursor.h);
 	if (num <= 0)
 		return;
 
@@ -1464,6 +1474,10 @@ terminal__putc(EditLine *el, wint_t c)
 {
 	char buf[MB_LEN_MAX +1];
 	ssize_t i;
+	if (c >= 0x20 && c < 0x7F)
+		rtlog("  >> terminal__putc 0x%X '%c'\n", (unsigned)c, (char)c);
+	else
+		rtlog("  >> terminal__putc 0x%X\n", (unsigned)c);
 	if (c == MB_FILL_CHAR)
 		return 0;
 	if (c & EL_LITERAL)
