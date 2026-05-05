@@ -51,27 +51,11 @@ __RCSID("$NetBSD: emacs.c,v 1.38 2024/06/29 17:28:07 christos Exp $");
 #include "fcns.h"
 #include "mk_wcwidth.h"
 
-static wchar_t *
-el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
-{
-	if (cursor <= buffer)
-		return cursor;
-	--cursor;
-	while (cursor > buffer && wcwidth(*cursor) == 0)
-		--cursor;
-	return cursor;
-}
-
-static wchar_t *
-el_next_grapheme(wchar_t *cursor, wchar_t *limit)
-{
-	if (cursor >= limit)
-		return cursor;
-	cursor++;		/* skip the base character */
-	while (cursor < limit && wcwidth(*cursor) == 0)
-		cursor++;	/* skip attached combining marks */
-	return cursor;
-}
+/* el_prev_grapheme / el_next_grapheme are declared in chared.h and
+ * defined in common.c.  Earlier emacs.c had its own static copies that
+ * stepped one wchar_t at a time, which on Windows chopped UTF-16
+ * surrogate pairs in half — backspacing or forward-deleting an emoji
+ * left an orphan surrogate in the buffer. */
 
 /* em_delete_or_list():
  *	Delete character under cursor or list completions if at end of line

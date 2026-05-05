@@ -64,7 +64,7 @@ __RCSID("$NetBSD: common.c,v 1.50 2024/06/30 16:29:42 christos Exp $");
  * trail surrogate isn't a base of its own and a lead surrogate has no
  * wcwidth we can trust.  el_cp_width_wchars / IS_UTF16_* handle both.
  */
-static wchar_t *
+libedit_private wchar_t *
 el_next_grapheme(wchar_t *cursor, wchar_t *limit)
 {
 	if (cursor >= limit)
@@ -81,7 +81,7 @@ el_next_grapheme(wchar_t *cursor, wchar_t *limit)
 	return cursor;
 }
 
-static wchar_t *
+libedit_private wchar_t *
 el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
 {
 	if (cursor <= buffer)

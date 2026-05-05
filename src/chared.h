@@ -156,4 +156,12 @@ libedit_private int	 ch_aliasfun(EditLine *, el_afunc_t, void *);
 libedit_private int	 ch_enlargebufs(EditLine *, size_t);
 libedit_private void	 ch_end(EditLine *);
 
+/* Surrogate- and combining-mark-aware grapheme stepping.  Defined in
+ * common.c.  Each translation unit that does cursor-by-grapheme work
+ * (common.c, emacs.c, ...) must call these instead of stepping wchar_t
+ * units directly — on Windows a non-BMP code point is a surrogate pair
+ * (two wchar_t), and stepping one slot at a time chops it in half. */
+libedit_private wchar_t	*el_prev_grapheme(wchar_t *cursor, wchar_t *buffer);
+libedit_private wchar_t	*el_next_grapheme(wchar_t *cursor, wchar_t *limit);
+
 #endif /* _h_el_chared */
