@@ -36,6 +36,7 @@ __RCSID("$NetBSD: eln.c,v 1.38 2024/05/17 02:59:08 christos Exp $");
 #include <stdlib.h>
 
 #include "el.h"
+#include "utf8.h"
 
 int
 el_getc(EditLine *el, char *cp)
@@ -367,13 +368,40 @@ el_get(EditLine *el, int op, ...)
 }
 
 
+/*
+ * Encoded byte offset of position `end` within a wchar_t line that
+ * starts at `begin`.  Mirrors ct_encode_string's surrogate-pair logic:
+ * a UTF-16 lead+trail in the wchar_t buffer becomes one 4-byte UTF-8
+ * sequence, not the 3+3=6 bytes that ct_enc_width() of each half
+ * would suggest.  Without this, info->cursor / info->lastchar are
+ * computed too far on Windows with non-BMP content and the el_line()
+ * caller (e.g., libedit4pl.c's pl_line) reads garbage into Before.
+ */
+static size_t
+ct_enc_offset(const wchar_t *begin, const wchar_t *end)
+{
+	size_t offset = 0;
+	const wchar_t *p;
+
+	for (p = begin; p < end; ) {
+#if SIZEOF_WCHAR_T == 2
+		if (IS_UTF16_LEAD(p[0]) && p+1 < end && IS_UTF16_TRAIL(p[1])) {
+			offset += 4;	/* combined 4-byte UTF-8 */
+			p += 2;
+			continue;
+		}
+#endif
+		offset += ct_enc_width(*p);
+		p++;
+	}
+	return offset;
+}
+
 const LineInfo *
 el_line(EditLine *el)
 {
 	const LineInfoW *winfo = el_wline(el);
 	LineInfo *info = &el->el_lgcylinfo;
-	size_t offset;
-	const wchar_t *p;
 
 	if (el->el_flags & FROM_ELLINE)
 		return info;
@@ -381,15 +409,10 @@ el_line(EditLine *el)
 	el->el_flags |= FROM_ELLINE;
 	info->buffer   = ct_encode_string(winfo->buffer, &el->el_lgcyconv);
 
-	offset = 0;
-	for (p = winfo->buffer; p < winfo->cursor; p++)
-		offset += ct_enc_width(*p);
-	info->cursor = info->buffer + offset;
-
-	offset = 0;
-	for (p = winfo->buffer; p < winfo->lastchar; p++)
-		offset += ct_enc_width(*p);
-	info->lastchar = info->buffer + offset;
+	info->cursor = info->buffer +
+	    ct_enc_offset(winfo->buffer, winfo->cursor);
+	info->lastchar = info->buffer +
+	    ct_enc_offset(winfo->buffer, winfo->lastchar);
 
 	if (el->el_chared.c_resizefun)
 		(*el->el_chared.c_resizefun)(el, el->el_chared.c_resizearg);
