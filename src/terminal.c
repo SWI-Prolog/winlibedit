@@ -744,6 +744,15 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
                 /* terminal__putc() ignores any MB_FILL_CHARs */
                 wchar_t _c = *cp++;
                 int _w;
+                /* MB_FILL_CHAR is the right-half placeholder for a wide
+                 * char.  terminal__putc() emits nothing for it, and the
+                 * preceding base char already accounted for the second
+                 * column — so don't wcwidth() it (which currently routes
+                 * through libedit_wcwidth → mk_wcwidth and returns 1
+                 * for the (wint_t)-1 sentinel) and don't advance the
+                 * cursor for it. */
+                if ((wint_t)_c == MB_FILL_CHAR)
+                        continue;
 #if SIZEOF_WCHAR_T == 2
                 /* On Windows a non-BMP code point is split across two
                  * wchar_t slots (UTF-16 surrogate pair).  terminal__putc()
@@ -774,8 +783,8 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 #endif
                 _w = wcwidth(_c);
                 terminal__putc(el, _c);
-                /* Combining marks (w==0) and MB_FILL_CHARs (w==0) do not
-                 * advance the visual cursor; double-wide chars advance by 2. */
+                /* Combining marks (w==0) do not advance the visual
+                 * cursor; double-wide chars advance by 2. */
                 if (_w > 0)
                         el->el_cursor.h += _w;
         } while (--n);
