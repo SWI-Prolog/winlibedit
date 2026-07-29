@@ -39,9 +39,7 @@ __RCSID("$NetBSD: chartype.c,v 1.37 2023/08/10 20:38:00 mrg Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#ifdef __WINDOWS__
 #include "utf8.h"
-#endif
 
 #include "el.h"
 
@@ -299,6 +297,42 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 	*dst = L'\0';
 	return conv->wbuff;
 }
+
+/* ct_cp_vcols():
+ *	Visual columns taken by the code point starting at *cp, and the
+ *	number of wchar_t slots it occupies (*adv).
+ *
+ *	This is the accounting terminal_overwrite() performs, factored out
+ *	for every other caller that walks a line buffer counting columns.
+ *	MB_FILL_CHAR is the right-half placeholder of a wide char:
+ *	terminal__putc() emits nothing for it and the base already counted
+ *	its column, so it is worth 0.  On Windows a non-BMP code point
+ *	lives in two wchar_t slots (a UTF-16 surrogate pair) that must be
+ *	decoded before wcwidth() sees them -- the width of a lone
+ *	surrogate is meaningless, and libedit_wcwidth() may be a
+ *	font-measuring callback that answers with the width of the
+ *	"missing glyph" box.  A lead surrogate whose trail has not arrived
+ *	yet paints nothing, hence 0 columns.
+ */
+libedit_private int
+ct_cp_vcols(const wchar_t *cp, const wchar_t *end, int *adv)
+{
+	int c, w;
+
+	if ((wint_t)*cp == MB_FILL_CHAR) {
+		*adv = 1;
+		return 0;
+	}
+	c = el_cp_at(cp, end, adv);
+#if SIZEOF_WCHAR_T == 2
+	if (IS_UTF16_SURROGATE(c))	/* dangling half: nothing painted */
+		return 0;
+#endif
+	w = wcwidth((uchar_t)c);
+
+	return w > 0 ? w : 0;
+}
+
 
 libedit_private int
 ct_visual_width(wchar_t c)

@@ -912,12 +912,13 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 			 * every combining mark in an insert pushes one extra
 			 * cell to the right, so repeated inserts accumulate
 			 * phantom gaps. */
+			const wchar_t *p = cp, *end = cp + num;
 			int num_vcols = 0;
-			int i;
-			for (i = 0; i < num; i++) {
-				int _w = wcwidth(cp[i]);
-				if (_w > 0)
-					num_vcols += _w;
+
+			while (p < end) {
+				int adv;
+				num_vcols += ct_cp_vcols(p, end, &adv);
+				p += adv;
 			}
 			if (num_vcols > 0)
 				terminal_tputs(el,
@@ -928,14 +929,19 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 			return;
 		}
 	if (GoodStr(T_im) && GoodStr(T_ei)) {	/* if I have insert mode */
+		const wchar_t *end = cp + num;
+
 		terminal_tputs(el, Str(T_im), 1);
 
-		do {
-			int _w = wcwidth(*cp);
-			terminal__putc(el, *cp++);
-			if (_w > 0)
-				el->el_cursor.h += _w;
-		} while (--num);
+		while (cp < end) {
+			int adv, i;
+			int _w = ct_cp_vcols(cp, end, &adv);
+
+			for (i = 0; i < adv; i++)
+				terminal__putc(el, cp[i]);
+			cp += adv;
+			el->el_cursor.h += _w;
+		}
 
 		if (GoodStr(T_ip))	/* have to make num chars insert */
 			terminal_tputs(el, Str(T_ip), 1);
@@ -943,22 +949,31 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 		terminal_tputs(el, Str(T_ei), 1);
 		return;
 	}
-	do {
-		if (GoodStr(T_ic))	/* have to make num chars insert */
-			terminal_tputs(el, Str(T_ic), 1);
+	{
+		const wchar_t *end = cp + num;
 
-		{
-			int _w = wcwidth(*cp);
-			terminal__putc(el, *cp++);
-			if (_w > 0)
-				el->el_cursor.h += _w;
-		}
+		while (cp < end) {
+			int adv, i;
+			int _w = ct_cp_vcols(cp, end, &adv);
 
-		if (GoodStr(T_ip))	/* have to make num chars insert */
-			terminal_tputs(el, Str(T_ip), 1);
+			/* T_ic opens ONE cell.  Open exactly as many as the
+			 * code point will paint: two for a wide char, none
+			 * for a combining mark (it joins the cluster in the
+			 * cell before it) or a MB_FILL_CHAR. */
+			if (GoodStr(T_ic))
+				for (i = 0; i < _w; i++)
+					terminal_tputs(el, Str(T_ic), 1);
+
+			for (i = 0; i < adv; i++)
+				terminal__putc(el, cp[i]);
+			cp += adv;
+			el->el_cursor.h += _w;
+
+			if (GoodStr(T_ip))	/* have to make num chars insert */
+				terminal_tputs(el, Str(T_ip), 1);
 					/* pad the inserted char */
-
-	} while (--num);
+		}
+	}
 }
 
 
