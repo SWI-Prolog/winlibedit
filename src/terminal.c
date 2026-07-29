@@ -245,6 +245,24 @@ static FILE *terminal_outfile = NULL;
 static void
 terminal_setflags(EditLine *el)
 {
+#ifdef __WINDOWS__
+	/* The Epilog terminal (xpce terminal_image) implements xterm's
+	 * delayed wrap: a character written in the last column leaves the
+	 * caret parked at the right margin and the wrap only happens when
+	 * the next character arrives.  The Windows fake termcap (see
+	 * win_ncurses.c) cannot know which terminal is on the other end,
+	 * so record it here.  Without this libedit assumes the terminal
+	 * already moved to (v+1,0) and every subsequent cursor motion --
+	 * which cancels the pending wrap -- acts one row too high.
+	 *
+	 * A real Windows console is written with WriteConsole() (see
+	 * el_write_buffer()), which wraps immediately, so leave Val(T_xn)
+	 * alone there.
+	 */
+	if (el->el_flags & EPILOG)
+		Val(T_xn) = 1;
+#endif
+
 	EL_FLAGS = 0;
 	if (el->el_tty.t_tabs)
 		EL_FLAGS |= (Val(T_pt) && !Val(T_xt)) ? TERM_CAN_TAB : 0;
