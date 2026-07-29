@@ -101,6 +101,13 @@ tgetstr(const char *id, char **area)
   else if (strcmp(id, "cr") == 0) s = "\r";              // carriage return
   else if (strcmp(id, "ic") == 0) s = "\x1b[@";          // insert character
   else if (strcmp(id, "dc") == 0) s = "\x1b[P";          // delete character
+  /* Parameterised delete.  Without it libedit removes N columns as N
+   * separate CSI P sequences, and the Epilog terminal -- which deletes
+   * whole grapheme clusters -- consumes a further cluster for every
+   * request beyond the first: two CSI P over a 2-column character eat
+   * the character *and* the one after it.  One CSI Ps P says how many
+   * columns to remove and leaves no room for that mismatch. */
+  else if (strcmp(id, "DC") == 0) s = "\x1b[%p1%dP";     // delete Ps chars
   else if (strcmp(id, "ch") == 0) s = "\x1b[%i%p1%dG";   // Set col
   else if (strcmp(id, "cm") == 0) s = "\x1b[%i%p1%d;%p2%dH";   // Set col&row
   else return NULL;
