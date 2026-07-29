@@ -108,6 +108,23 @@ el_prev_grapheme(wchar_t *cursor, wchar_t *buffer)
 	return cursor;
 }
 
+/* is_pending_lead():
+ *	True when `c` is the first half of a supplementary code point --
+ *	a UTF-16 lead surrogate whose trail has not been read yet.  Only
+ *	possible where wchar_t is 16 bits (Windows).
+ */
+static int
+is_pending_lead(wint_t c)
+{
+#if SIZEOF_WCHAR_T == 2
+	return IS_UTF16_LEAD(c);
+#else
+	(void)c;
+	return 0;
+#endif
+}
+
+
 /* ed_end_of_file():
  *	Indicate end of file
  *	[^D]
@@ -148,7 +165,15 @@ ed_insert(EditLine *el, wint_t c)
 			c_insert(el, 1);
 
 		*el->el_line.cursor++ = c;
-		re_fastaddc(el);		/* fast refresh for one char. */
+		/* A supplementary code point reaches us as two wchar_t
+		 * (lead surrogate, then trail).  Refreshing in between
+		 * would redisplay half a code point: the lead paints no
+		 * glyph, yet it takes a slot in the line buffer that the
+		 * next refresh diffs against, which drags every column
+		 * after it one to the right.  Wait for the trail; it is
+		 * the very next character read. */
+		if (!is_pending_lead(c))
+			re_fastaddc(el);	/* fast refresh for one char. */
 	} else {
 		if (el->el_state.inputmode != MODE_REPLACE_1)
 			c_insert(el, el->el_state.argument);

@@ -735,25 +735,22 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
  * Combining marks (wcwidth == 0) occupy a code-point slot but no visual
  * column; double-wide chars (wcwidth == 2) occupy two columns.
  *
- * MB_FILL_CHAR (the right-half placeholder for a wide char) must be
- * skipped here.  On Linux the system wcwidth() returns -1 for it and
- * the `w > 0` filter is enough; on Windows mk_wcwidth(0xFFFF) returns
- * the default 1, so without an explicit skip every wide char would
- * count as 3 columns instead of 2 and the cursor would land too far
- * right by one column per wide char on the line.
+ * ct_cp_vcols() does the per-code-point accounting: it skips
+ * MB_FILL_CHAR (the right-half placeholder for a wide char, which
+ * mk_wcwidth(0xFFFF) would otherwise report as one more column) and
+ * decodes a UTF-16 surrogate pair before measuring it, so a non-BMP
+ * character counts once rather than once per wchar_t slot.
  */
 static int
 display_vcol(const wchar_t *line, int cpidx)
 {
-	int col = 0, i;
+	const wchar_t *end = line + cpidx;
+	int col = 0, i = 0;
 
-	for (i = 0; i < cpidx && line[i] != L'\0'; i++) {
-		int w;
-		if ((wint_t)line[i] == MB_FILL_CHAR)
-			continue;
-		w = wcwidth(line[i]);
-		if (w > 0)
-			col += w;
+	while (i < cpidx && line[i] != L'\0') {
+		int adv;
+		col += ct_cp_vcols(&line[i], end, &adv);
+		i += adv;
 	}
 	return col;
 }
@@ -1682,6 +1679,17 @@ re_fastaddc(EditLine *el)
 		break;
 	case CHTYPE_NL:
 	case CHTYPE_PRINT:
+#if SIZEOF_WCHAR_T == 2
+		/* ed_insert() holds back the redisplay of a supplementary
+		 * code point until its trail surrogate lands, so on that
+		 * trail the lead is still unpainted.  Emit both: alone,
+		 * the trail encodes as a lone surrogate rather than
+		 * joining the lead into one 4-byte UTF-8 character. */
+		if (IS_UTF16_TRAIL(c) &&
+		    el->el_line.cursor - 2 >= el->el_line.buffer &&
+		    IS_UTF16_LEAD(el->el_line.cursor[-2]))
+			re_fastputc(el, el->el_line.cursor[-2]);
+#endif
 		re_fastputc(el, c);
 		break;
 	case CHTYPE_ASCIICTL:
