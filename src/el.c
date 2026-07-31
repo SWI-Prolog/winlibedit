@@ -453,6 +453,17 @@ el_wset(EditLine *el, int op, ...)
 		terminal__flush(el);
 		break;
 
+	/* Wipe the prompt and the input line from the screen and leave the
+	 * cursor where the prompt started.  For an embedder that must let
+	 * unrelated output through while the editor owns the screen: erase,
+	 * write, then EL_REFRESH to paint the line below the output.  Any
+	 * subsequent redisplay starts from scratch, as after EL_REFRESH. */
+	case EL_ERASELINE:
+		re_clear_lines(el);
+		re_clear_display(el);
+		terminal__flush(el);
+		break;
+
 	case EL_WORDCHARS:
 		rv = map_set_wordchars(el, va_arg(ap, wchar_t *));
 		break;

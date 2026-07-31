@@ -266,6 +266,13 @@ el_set(EditLine *el, int op, ...)
 		ret = 0;
 		break;
 
+	case EL_ERASELINE:
+		re_clear_lines(el);
+		re_clear_display(el);
+		terminal__flush(el);
+		ret = 0;
+		break;
+
 	default:
 		ret = -1;
 		break;
