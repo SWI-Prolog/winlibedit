@@ -849,11 +849,19 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	while (*n)
 		n++;
 
-	/* remove blanks from end of new */
-	while (nfd < n) {
-		if (n[-1] != ' ')
-			break;
-		n--;
+	/* Remove blanks from end of new.  Not on a row another row of the
+	 * same input follows: such a row is full -- that is why it wrapped
+	 * -- and leaving its last column unwritten ends it with the '\n'
+	 * terminal_move_to_line() emits rather than with a wrap.  A
+	 * terminal that reflows on resize (xpce's, xterm) then reads it as
+	 * a hard line break and rewraps the input into the wrong number of
+	 * rows, leaving a copy of a row behind. */
+	if (i >= el->el_refresh.r_newcv || !EL_HAS_AUTO_MARGINS) {
+		while (nfd < n) {
+			if (n[-1] != ' ')
+				break;
+			n--;
+		}
 	}
 	ne = n;
 	*ne = '\0';
