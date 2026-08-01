@@ -1164,8 +1164,10 @@ terminal_get_size(EditLine *el, int *lins, int *cols)
 #ifdef __WINDOWS__
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	if ( GetConsoleScreenBufferInfo(el->el_hOut, &csbi) )
-	{ *cols = csbi.dwSize.X;
-	  *lins = csbi.dwSize.Y;
+	{ /* The window, not the scrollback buffer: see tgetnum() in
+	   * win_ncurses.c. */
+	  *cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	  *lins = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 	}
 #else/*__WINDOWS__*/
 #ifdef TIOCGWINSZ

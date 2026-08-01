@@ -69,19 +69,29 @@ tgetflag(const char *id)
   return 0;
 }
 
-/* Numeric capabilities: return -1 if unknown */
+/* Numeric capabilities: return -1 if unknown.
+ *
+ * The size is the *window*, not the screen buffer: writing in the last
+ * row of the window is what scrolls, and that is the geometry libedit
+ * must model.  dwSize.Y is the scrollback height (300 by default), so
+ * using it made libedit believe it had hundreds of rows below the
+ * cursor.  An Epilog window has no console at all -- report the size
+ * as unknown there and let terminal_init() fall back to its 80x24
+ * default until EL_GETSZFN can ask the terminal itself.  Reading the
+ * struct regardless of the return value handed libedit whatever was
+ * on the stack.
+ */
 int
 tgetnum(const char *id)
-{ if ( strcmp(id, "co") == 0 )
-  { CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-    return csbi.dwSize.X;
+{ CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+  if ( GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi) )
+  { if ( strcmp(id, "co") == 0 )
+      return csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    if ( strcmp(id, "li") == 0 )
+      return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
   }
-  if ( strcmp(id, "li") == 0 )
-  { CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-    return csbi.dwSize.Y;
-  }
+
   return -1;
 }
 
