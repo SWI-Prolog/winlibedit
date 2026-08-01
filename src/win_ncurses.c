@@ -101,6 +101,11 @@ tgetstr(const char *id, char **area)
 { const char *s = NULL;
   if (strcmp(id, "cl") == 0) s = "\x1b[H\x1b[J";        // clear screen
   else if (strcmp(id, "ce") == 0) s = "\x1b[K";          // clear to end of line
+  /* Clear to end of display.  Without it terminal_change_size() falls
+   * back to clearing the rows libedit last drew, which is too few when
+   * the input needs fewer rows after the resize: the tail of the old
+   * layout stays on the screen. */
+  else if (strcmp(id, "cd") == 0) s = "\x1b[J";          // clear to end of display
   else if (strcmp(id, "al") == 0) s = "\x1b[L";          // insert line
   else if (strcmp(id, "dl") == 0) s = "\x1b[M";          // delete line
   else if (strcmp(id, "up") == 0) s = "\x1b[A";          // cursor up
