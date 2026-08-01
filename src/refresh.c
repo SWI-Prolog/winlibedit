@@ -1398,6 +1398,13 @@ re_cursor_at_width(EditLine *el, int target_cols, int *out_h, int *out_v)
 	}
 
 	for (cp = el->el_line.buffer; cp < el->el_line.cursor; cp++) {
+		/* Resolve the wrap the previous character left pending
+		 * before writing this one. */
+		if (h >= target_cols) {
+			h -= target_cols;
+			v++;
+		}
+
 		switch (ct_chr_class(*cp)) {
 		case CHTYPE_NL:
 			h = 0;
@@ -1416,11 +1423,17 @@ re_cursor_at_width(EditLine *el, int target_cols, int *out_h, int *out_v)
 			h += ct_visual_width(*cp);
 			break;
 		}
+	}
 
-		if (h >= target_cols) {
-			h -= target_cols;
-			v++;
-		}
+	/* Input that ends exactly at the right margin leaves the caret on
+	 * that row when the terminal has magic margins: the row below does
+	 * not exist until another character is written, and a terminal
+	 * that reflows on resize does not open one either.  Reporting the
+	 * caret one row down made terminal_change_size() rewind that row
+	 * too far and repaint the input over the line above it. */
+	if (h >= target_cols && !EL_HAS_MAGIC_MARGINS) {
+		h -= target_cols;
+		v++;
 	}
 
 	if (cp < el->el_line.lastchar && (w = wcwidth(*cp)) > 1)
