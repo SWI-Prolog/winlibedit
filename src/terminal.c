@@ -530,6 +530,11 @@ terminal_move_to_line(EditLine *el, int where)
 {
 	int del;
 
+	rtlog("terminal_move_to_line(where=%d) el_cursor=(v=%d h=%d) "
+	      "t_size=(v=%d h=%d)\n",
+	      where, el->el_cursor.v, el->el_cursor.h,
+	      el->el_terminal.t_size.v, el->el_terminal.t_size.h);
+
 	if (where == el->el_cursor.v)
 		return;
 
@@ -1229,6 +1234,13 @@ terminal_change_size(EditLine *el, int lins, int cols)
 		int new_h, new_v;
 
 		re_cursor_at_width(el, cols, &new_h, &new_v);
+
+		rtlog("=== terminal_change_size(lins=%d cols=%d) "
+		      "was (li=%d co=%d) r_oldcv=%d new=(v=%d h=%d) "
+		      "el_cursor=(v=%d h=%d)\n",
+		      lins, cols, Val(T_li), Val(T_co),
+		      el->el_refresh.r_oldcv, new_v, new_h,
+		      el->el_cursor.v, el->el_cursor.h);
 
 		if (el->el_refresh.r_oldcv > 0 || new_v > 0) {
 			if (new_v > 0) {
