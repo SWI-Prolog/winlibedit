@@ -219,21 +219,6 @@ re_addc(EditLine *el, wint_t c)
 	}
 }
 
-/* cell_width():
- *	Visual columns taken by one cell of el_display/el_vdisplay.  Prompt
- *	literals hold a magic character whose wcwidth() is meaningless; the
- *	width they paint was recorded when they were created.
- */
-static int
-cell_width(EditLine *el, wint_t c)
-{
-	if (EL_IS_LITERAL(c))
-		return literal_width(el, c);
-	if (c == MB_FILL_CHAR)
-		return 0;
-	return wcwidth((uchar_t)c);
-}
-
 /* re_putliteral():
  *	Place the literal string given
  */
@@ -256,10 +241,15 @@ re_putliteral(EditLine *el, const wchar_t *begin, const wchar_t *end)
 	while (--i > 0)
 		el->el_vdisplay[cur->v][cur->h + i] = MB_FILL_CHAR;
 
+	/* A literal takes one code-point slot per column it paints, but at
+	 * least one: a literal that ends the prompt has no visible character
+	 * glued to it and paints nothing.  Advance the visual column by the
+	 * columns actually painted, as re_putc() does. */
 	cur->h += w ? w : 1;
-	if (cur->h >= sizeh) {
+	el->el_refresh.r_vcursor_h += w > 0 ? w : 0;
+	if (el->el_refresh.r_vcursor_h >= sizeh) {
 		/* assure end of line */
-		el->el_vdisplay[cur->v][sizeh] = '\0';
+		el->el_vdisplay[cur->v][cur->h] = '\0';
 		re_nextline(el);
 	}
 }
@@ -740,7 +730,7 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
 		n++;
 #endif
 	terminal_overwrite(el, cp, n);
-	for (p = cp + n; *p != L'\0' && !EL_IS_LITERAL(*p) && wcwidth(*p) == 0; p++)
+	for (p = cp + n; *p != L'\0' && ct_cell_vcols(el, *p) == 0; p++)
 		terminal__putc(el, *p);
 }
 
@@ -1635,18 +1625,18 @@ re_fastputc(EditLine *el, wint_t c)
 			if ((wint_t)line[cpidx] == MB_FILL_CHAR) {
 				cpidx++; continue;
 			}
-			cw = cell_width(el, (wint_t)line[cpidx]);
+			cw = ct_cell_vcols(el, (wint_t)line[cpidx]);
 			if (cw < 0) cw = 1;
 			if (cw > 0) {
 				vis += cw;
 				cpidx++;
-				/* skip combining marks and MB_FILL_CHAR
-				 * placeholder following this base char */
+				/* skip everything that paints no column of
+				 * its own after this base char: combining
+				 * marks, the MB_FILL_CHAR placeholder and a
+				 * literal holding only an escape sequence */
 				while (cpidx < (int)EL_BUFSIZ &&
 				    line[cpidx] != L'\0' &&
-				    ((!EL_IS_LITERAL(line[cpidx]) &&
-				      wcwidth((uchar_t)line[cpidx]) == 0) ||
-				    (wint_t)line[cpidx] == MB_FILL_CHAR))
+				    ct_cell_vcols(el, (wint_t)line[cpidx]) == 0)
 					cpidx++;
 			} else {
 				cpidx++;

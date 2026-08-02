@@ -298,6 +298,25 @@ ct_visual_string(const wchar_t *s, ct_buffer_t *conv)
 	return conv->wbuff;
 }
 
+/* ct_cell_vcols():
+ *	Visual columns painted by one cell of el_display/el_vdisplay.
+ *	MB_FILL_CHAR is the right-half placeholder of a wide char, whose
+ *	column the base already counted.  A prompt literal holds an
+ *	invisible escape sequence plus at most one visible character; its
+ *	width was recorded when it was created, and wcwidth() of the magic
+ *	character standing for it is meaningless.
+ */
+libedit_private int
+ct_cell_vcols(EditLine *el, wint_t c)
+{
+
+	if (c == MB_FILL_CHAR)
+		return 0;
+	if (EL_IS_LITERAL(c))
+		return literal_width(el, c);
+	return wcwidth((uchar_t)c);
+}
+
 /* ct_cp_vcols():
  *	Visual columns taken by the code point starting at *cp, and the
  *	number of wchar_t slots it occupies (*adv).
@@ -322,13 +341,9 @@ ct_cp_vcols(EditLine *el, const wchar_t *cp, const wchar_t *end, int *adv)
 {
 	int c, w;
 
-	if ((wint_t)*cp == MB_FILL_CHAR) {
+	if ((wint_t)*cp == MB_FILL_CHAR || EL_IS_LITERAL(*cp)) {
 		*adv = 1;
-		return 0;
-	}
-	if (EL_IS_LITERAL(*cp)) {
-		*adv = 1;
-		return literal_width(el, (wint_t)*cp);
+		return ct_cell_vcols(el, (wint_t)*cp);
 	}
 	c = el_cp_at(cp, end, adv);
 #if SIZEOF_WCHAR_T == 2

@@ -99,13 +99,17 @@ prompt_print(EditLine *el, int op)
 	for (; *p; p++) {
 		if (elp->p_ignore == *p) {
 			wchar_t *litstart = ++p;
+
 			while (*p && *p != elp->p_ignore)
 				p++;
-			if (!*p || !p[1]) {
-				// XXX: We lose the last literal
+			/* The character after the closing delimiter is drawn
+			 * by the literal; skip it here.  A literal that ends
+			 * the prompt (a colour reset, typically) has none and
+			 * must still be emitted. */
+			re_putliteral(el, litstart, p);
+			if (!*p || !p[1])
 				break;
-			}
-			re_putliteral(el, litstart, p++);
+			p++;
 			continue;
 		}
 		re_putc(el, *p, 1);

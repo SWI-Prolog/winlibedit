@@ -83,8 +83,15 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 	size_t i, len;
 	ssize_t w, n;
 	char *b;
+	int glue;
 
-	w = wcwidth(end[1]);	/* column width of the visible char */
+	/* The character following the closing delimiter belongs in the cell
+	 * that holds this literal.  A literal that ends the prompt has no
+	 * such character and paints nothing; so has one whose delimiter was
+	 * never closed, in which case end[] points at the terminating NUL
+	 * and end[1] must not be read at all. */
+	glue = end[0] != L'\0' && end[1] != L'\0';
+	w = glue ? wcwidth(end[1]) : 0;
 	*wp = (int)w;
 
 	if (w < 0)		/* non-printable characters are negative */
@@ -96,7 +103,8 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 	len = (size_t)(end - buf);
 	for (w = 0, i = 0; i < len; i++)
 		w += ct_enc_width(buf[i]);
-	w += ct_enc_width(end[1]);
+	if (glue)
+		w += ct_enc_width(end[1]);
 
 	b = el_malloc((size_t)(w + 1));
 	if (b == NULL)
@@ -104,7 +112,8 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 
 	for (n = 0, i = 0; i < len; i++)
 		n += ct_encode_char(b + n, (size_t)(w - n), buf[i]);
-	n += ct_encode_char(b + n, (size_t)(w - n), end[1]);
+	if (glue)
+		n += ct_encode_char(b + n, (size_t)(w - n), end[1]);
 	b[n] = '\0';
 
 	/*

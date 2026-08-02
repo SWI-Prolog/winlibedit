@@ -99,6 +99,9 @@ libedit_private int ct_visual_width(wchar_t);
 libedit_private int ct_cp_vcols(EditLine *, const wchar_t *, const wchar_t *,
     int *);
 
+/* Visual columns painted by one display cell. */
+libedit_private int ct_cell_vcols(EditLine *, wint_t);
+
 /* Turn the given character into the appropriate visual format, matching
  * the width given by ct_visual_width(). Returns the number of characters used
  * up, or -1 if insufficient space. Buffer length is in count of wchar_t's. */

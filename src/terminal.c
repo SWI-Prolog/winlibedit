@@ -664,19 +664,20 @@ mc_again:
 						    MB_FILL_CHAR) {
 							idx++; continue;
 						}
-						w = wcwidth((uchar_t)line[idx]);
+						w = ct_cell_vcols(el, line[idx]);
 						if (w < 0) w = 1;
 						vis += w;
 						idx++;
-						/* skip combining marks and the
-						 * MB_FILL_CHAR placeholder that
-						 * follows a wide base char */
+						/* skip everything that paints no
+						 * column of its own: combining
+						 * marks, the MB_FILL_CHAR of a
+						 * wide base char and a literal
+						 * holding only an escape */
 						if (w > 0) {
 							while (idx < (int)EL_BUFSIZ
 							    && line[idx] != L'\0' &&
-							    (wcwidth((uchar_t)line[idx])
-							    == 0 || (wint_t)line[idx]
-							    == MB_FILL_CHAR))
+							    ct_cell_vcols(el,
+							    line[idx]) == 0)
 								idx++;
 						}
 					}
@@ -691,20 +692,27 @@ mc_again:
 						    MB_FILL_CHAR) {
 							idx++; continue;
 						}
-						w = wcwidth((uchar_t)line[idx]);
-						if (w <= 0) { idx++; continue; }
-						terminal__putc(el,
-						    (wchar_t)line[idx++]);
-						vis += w;
-						/* write combining marks and skip
-						 * MB_FILL_CHAR without writing */
+						w = ct_cell_vcols(el, line[idx]);
+						/* A literal paints no column of
+						 * its own but must still be sent:
+						 * it carries the escape sequence
+						 * that colours what follows. */
+						if (w <= 0 &&
+						    !EL_IS_LITERAL(line[idx])) {
+							idx++; continue;
+						}
+						terminal__putc(el, line[idx++]);
+						if (w > 0)
+							vis += w;
+						/* write combining marks and
+						 * literals; terminal__putc()
+						 * ignores MB_FILL_CHAR */
 						while (idx < (int)EL_BUFSIZ &&
 						    line[idx] != L'\0' &&
-						    (wcwidth((uchar_t)line[idx])
-						    == 0 || (wint_t)line[idx]
-						    == MB_FILL_CHAR))
+						    ct_cell_vcols(el,
+						    line[idx]) == 0)
 							terminal__putc(el,
-							    (wchar_t)line[idx++]);
+							    line[idx++]);
 					}
 					/* el_cursor.h corrected to `where'
 					 * below */
