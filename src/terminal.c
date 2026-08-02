@@ -249,15 +249,17 @@ terminal_setflags(EditLine *el)
 	/* The Epilog terminal (xpce terminal_image) implements xterm's
 	 * delayed wrap: a character written in the last column leaves the
 	 * caret parked at the right margin and the wrap only happens when
-	 * the next character arrives.  The Windows fake termcap (see
-	 * win_ncurses.c) cannot know which terminal is on the other end,
-	 * so record it here.  Without this libedit assumes the terminal
-	 * already moved to (v+1,0) and every subsequent cursor motion --
-	 * which cancels the pending wrap -- acts one row too high.
+	 * the next character arrives.  A real Windows console is written
+	 * with WriteConsole() (see el_write_buffer()), which wraps
+	 * immediately.  The Windows fake termcap (see win_ncurses.c)
+	 * cannot know which of the two is on the other end, so record it
+	 * here.
 	 *
-	 * A real Windows console is written with WriteConsole() (see
-	 * el_write_buffer()), which wraps immediately, so leave Val(T_xn)
-	 * alone there.
+	 * Only re_cursor_at_width() still needs this.  Everywhere else the
+	 * redisplay settles the wrap itself instead of predicting it -- see
+	 * terminal_overwrite() -- and does not care which kind of terminal
+	 * it is talking to.  re_cursor_at_width() reads a caret the
+	 * terminal's own reflow placed, which cannot be settled that way.
 	 */
 	if (el->el_flags & EPILOG)
 		Val(T_xn) = 1;
@@ -833,22 +835,40 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
 			el->el_cursor.h = 0;
 			if (el->el_cursor.v + 1 < el->el_terminal.t_size.v)
 				el->el_cursor.v++;
-			if (EL_HAS_MAGIC_MARGINS) {
-				/* Force the deferred wrap by writing a space
-				 * and then backspacing.  The space resolves
-				 * the magic-margin state (physical cursor moves
-				 * to (v+1, 0)), and the backspace returns it to
-				 * column 0 so physical cursor matches tracking
-				 * at (v+1, 0).  This matches re_fastputc().
-				 *
-				 * The older approach of writing el_display[v+1][0]
-				 * back briefly drops the following combining mark
-				 * from the cell (we only write one code point),
-				 * and leaves tracking.h at 1 which is out of sync
-				 * with the subsequent \r in re_update_line. */
-				terminal__putc(el, ' ');
-				terminal__putc(el, '\b');
-			}
+			/* Settle the wrap by writing a space and then
+			 * backspacing, whatever the terminal description says
+			 * about xn.  Both kinds of auto-margin terminal end up
+			 * in the same place:
+			 *
+			 *   magic margins -- the character that filled the row
+			 *   left the wrap pending, so the space performs it and
+			 *   lands at (v+1, 0), the backspace returns to (v+1, 0)
+			 *
+			 *   immediate wrap -- the terminal already moved to
+			 *   (v+1, 0), so the space lands there too and the
+			 *   backspace returns to (v+1, 0)
+			 *
+			 * so the physical cursor matches tracking at (v+1, 0)
+			 * either way, and libedit need not trust xn to be
+			 * right.  It frequently is not: a terminal description
+			 * describes the terminal it was written for, not the
+			 * one on the other end of the line.  Assuming the wrap
+			 * had already happened when it had not left every
+			 * following cursor motion -- which cancels a pending
+			 * wrap -- acting one row too high, and the screen
+			 * filled up from the bottom.
+			 *
+			 * The space costs the first cell of the new row, which
+			 * is about to be written over: the caller continues
+			 * there, and re_update_line() starts a row at column 0.
+			 *
+			 * The older approach of writing el_display[v+1][0]
+			 * back briefly drops the following combining mark
+			 * from the cell (we only write one code point),
+			 * and leaves tracking.h at 1 which is out of sync
+			 * with the subsequent \r in re_update_line. */
+			terminal__putc(el, ' ');
+			terminal__putc(el, '\b');
 		} else		/* no wrap, but cursor stays on screen */
 			el->el_cursor.h = el->el_terminal.t_size.h - 1;
 	}

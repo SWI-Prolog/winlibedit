@@ -1443,7 +1443,13 @@ re_cursor_at_width(EditLine *el, int target_cols, int *out_h, int *out_v)
 	 * not exist until another character is written, and a terminal
 	 * that reflows on resize does not open one either.  Reporting the
 	 * caret one row down made terminal_change_size() rewind that row
-	 * too far and repaint the input over the line above it. */
+	 * too far and repaint the input over the line above it.
+	 *
+	 * Unlike the wrap terminal_overwrite() settles, this one cannot be
+	 * forced: the caret is where the terminal's own reflow left it,
+	 * and nothing we write moves it there without disturbing the row
+	 * it is on.  So this is the one place in the redisplay that still
+	 * has to believe xn. */
 	if (h >= target_cols && !EL_HAS_MAGIC_MARGINS) {
 		h -= target_cols;
 		v++;
@@ -1564,10 +1570,10 @@ re_fastputc_resolve_wrap(EditLine *el)
 	    (size_t)el->el_terminal.t_size.h);
 
 	if (EL_HAS_AUTO_MARGINS) {
-		if (EL_HAS_MAGIC_MARGINS) {
-			terminal__putc(el, ' ');
-			terminal__putc(el, '\b');
-		}
+		/* Settle the wrap whatever the description says about xn;
+		 * see terminal_overwrite(), which has the reasoning. */
+		terminal__putc(el, ' ');
+		terminal__putc(el, '\b');
 	} else {
 		terminal__putc(el, '\r');
 		terminal__putc(el, '\n');
