@@ -98,6 +98,14 @@ typedef struct el_state_t {
 #define	el_realloc(a,b)	realloc(a, b)
 #define	el_free(a)	free(a)
 
+#ifndef SIZEOF_WCHAR_T			/* needed by the headers below */
+#  ifdef __SIZEOF_WCHAR_T__
+#    define SIZEOF_WCHAR_T __SIZEOF_WCHAR_T__
+#  else
+#    define SIZEOF_WCHAR_T 4
+#  endif
+#endif
+
 #include "tty.h"
 #include "prompt.h"
 #include "literal.h"
@@ -112,14 +120,6 @@ typedef struct el_state_t {
 #ifdef __WINDOWS__
 #include <windows.h>
 #define BUFFER_SIZE 1024
-#endif
-
-#ifndef SIZEOF_WCHAR_T
-#  ifdef __SIZEOF_WCHAR_T__
-#    define SIZEOF_WCHAR_T __SIZEOF_WCHAR_T__
-#  else
-#    define SIZEOF_WCHAR_T 4
-#  endif
 #endif
 
 /* 32-bit Unicode code point.  Used by every libedit caller of

@@ -776,6 +776,14 @@ terminal_overwrite(EditLine *el, const wchar_t *cp, size_t n)
                  * cursor for it. */
                 if ((wint_t)_c == MB_FILL_CHAR)
                         continue;
+                /* A prompt literal holds an invisible escape sequence plus
+                 * (maybe) one visible character; its width was recorded
+                 * when it was created. */
+                if (EL_IS_LITERAL(_c)) {
+                        terminal__putc(el, _c);
+                        el->el_cursor.h += literal_width(el, (wint_t)_c);
+                        continue;
+                }
 #if SIZEOF_WCHAR_T == 2
                 /* On Windows a non-BMP code point is split across two
                  * wchar_t slots (UTF-16 surrogate pair).  terminal__putc()
@@ -922,7 +930,7 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 
 			while (p < end) {
 				int adv;
-				num_vcols += ct_cp_vcols(p, end, &adv);
+				num_vcols += ct_cp_vcols(el, p, end, &adv);
 				p += adv;
 			}
 			if (num_vcols > 0)
@@ -940,7 +948,7 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 
 		while (cp < end) {
 			int adv, i;
-			int _w = ct_cp_vcols(cp, end, &adv);
+			int _w = ct_cp_vcols(el, cp, end, &adv);
 
 			for (i = 0; i < adv; i++)
 				terminal__putc(el, cp[i]);
@@ -959,7 +967,7 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 
 		while (cp < end) {
 			int adv, i;
-			int _w = ct_cp_vcols(cp, end, &adv);
+			int _w = ct_cp_vcols(el, cp, end, &adv);
 
 			/* T_ic opens ONE cell.  Open exactly as many as the
 			 * code point will paint: two for a wide char, none
@@ -1535,7 +1543,7 @@ terminal__putc(EditLine *el, wint_t c)
 		rtlog("  >> terminal__putc 0x%X\n", (unsigned)c);
 	if (c == MB_FILL_CHAR)
 		return 0;
-	if (c & EL_LITERAL)
+	if (EL_IS_LITERAL(c))
 #ifdef __WINDOWS__
 		return el_printf(el, EL_PTR_OUT, "%s", literal_get(el, c));
 #else

@@ -35,10 +35,34 @@
 #ifndef _h_el_literal
 #define	_h_el_literal
 
+/*
+ * A literal occupies a single cell of the display buffer, holding a
+ * "magic" character that terminal__putc() expands into the stored string.
+ * The cells are wint_t, which is 16 bits on Windows: there the tag below
+ * does not fit and we use the Unicode noncharacters U+FDD0..U+FDEF, which
+ * cannot occur in text.  That limits the number of literals on one
+ * screen; literal_add() refuses beyond EL_LITERAL_MAX.
+ */
+#if SIZEOF_WCHAR_T == 2
+#define EL_LITERAL	((wint_t)0xfdd0)
+#define EL_LITERAL_MAX	((size_t)0x20)
+#else
 #define EL_LITERAL	((wint_t)0x80000000)
+#define EL_LITERAL_MAX	((size_t)0x40000000)
+#endif
+
+/* MB_FILL_CHAR is above the range in both cases */
+#define EL_IS_LITERAL(c) \
+	((wint_t)(c) >= EL_LITERAL && \
+	 (wint_t)(c) < EL_LITERAL + (wint_t)EL_LITERAL_MAX)
+
+typedef struct el_lit_t {
+	char		*l_str;		/* the string to emit */
+	int		 l_width;	/* visual columns it occupies */
+} el_lit_t;
 
 typedef struct el_literal_t {
-	char		**l_buf;	/* array of buffers */
+	el_lit_t	*l_buf;		/* array of literals */
 	size_t		l_idx;		/* max in use */
 	size_t		l_len;		/* max allocated */
 } el_literal_t;
@@ -49,5 +73,6 @@ libedit_private void literal_clear(EditLine *);
 libedit_private wint_t literal_add(EditLine *, const wchar_t *,
     const wchar_t *, int *);
 libedit_private const char *literal_get(EditLine *, wint_t);
+libedit_private int literal_width(EditLine *, wint_t);
 
 #endif /* _h_el_literal */

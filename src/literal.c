@@ -69,7 +69,7 @@ literal_clear(EditLine *el)
 		return;
 
 	for (i = 0; i < l->l_idx; i++)
-		el_free(l->l_buf[i]);
+		el_free(l->l_buf[i].l_str);
 	el_free(l->l_buf);
 	l->l_buf = NULL;
 	l->l_len = 0;
@@ -88,6 +88,9 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 	*wp = (int)w;
 
 	if (w < 0)		/* non-printable characters are negative */
+		return 0;
+
+	if (l->l_idx >= EL_LITERAL_MAX)		/* out of magic characters */
 		return 0;
 
 	len = (size_t)(end - buf);
@@ -111,7 +114,7 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 	 * the char that belongs in that position) gets sent instead.
 	 */
 	if (l->l_idx == l->l_len) {
-		char **bp;
+		el_lit_t *bp;
 
 		l->l_len += 4;
 		bp = el_realloc(l->l_buf, sizeof(*l->l_buf) * l->l_len);
@@ -122,17 +125,36 @@ literal_add(EditLine *el, const wchar_t *buf, const wchar_t *end, int *wp)
 		}
 		l->l_buf = bp;
 	}
-	l->l_buf[l->l_idx++] = b;
-	return EL_LITERAL | (wint_t)(l->l_idx - 1);
+	l->l_buf[l->l_idx].l_str = b;
+	l->l_buf[l->l_idx].l_width = *wp;
+	l->l_idx++;
+	return EL_LITERAL + (wint_t)(l->l_idx - 1);
+}
+
+static el_lit_t *
+literal_at(EditLine *el, wint_t idx)
+{
+	el_literal_t *l = &el->el_literal;
+
+	assert(EL_IS_LITERAL(idx));
+	idx -= EL_LITERAL;
+	assert(l->l_idx > (size_t)idx);
+	return &l->l_buf[idx];
 }
 
 libedit_private const char *
 literal_get(EditLine *el, wint_t idx)
 {
-	el_literal_t *l = &el->el_literal;
+	return literal_at(el, idx)->l_str;
+}
 
-	assert(idx & EL_LITERAL);
-	idx &= ~EL_LITERAL;
-	assert(l->l_idx > (size_t)idx);
-	return l->l_buf[idx];
+/* literal_width():
+ *	Visual columns taken by the cell holding this literal.  The escape
+ *	sequence itself is invisible; only the character glued to it (if
+ *	any) has a width.
+ */
+libedit_private int
+literal_width(EditLine *el, wint_t idx)
+{
+	return literal_at(el, idx)->l_width;
 }

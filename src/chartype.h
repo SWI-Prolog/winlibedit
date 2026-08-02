@@ -96,7 +96,8 @@ libedit_private int ct_visual_width(wchar_t);
 
 /* Visual columns painted by the code point at *cp (which may be a UTF-16
  * surrogate pair), and the wchar_t slots it occupies (*adv). */
-libedit_private int ct_cp_vcols(const wchar_t *, const wchar_t *, int *);
+libedit_private int ct_cp_vcols(EditLine *, const wchar_t *, const wchar_t *,
+    int *);
 
 /* Turn the given character into the appropriate visual format, matching
  * the width given by ct_visual_width(). Returns the number of characters used

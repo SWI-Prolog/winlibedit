@@ -110,7 +110,7 @@ rtlog_wcs(const char *label, const wchar_t *s)
 
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);
-static int	display_vcol(const wchar_t *, int);
+static int	display_vcol(EditLine *, const wchar_t *, int);
 static void	re_update_line(EditLine *, wchar_t *, wchar_t *, int);
 static void	re_insert (EditLine *, wchar_t *, int, int, wchar_t *, int);
 static void	re_delete(EditLine *, wchar_t *, int, int, int);
@@ -217,6 +217,21 @@ re_addc(EditLine *el, wint_t c)
 		break;
 	}
 	}
+}
+
+/* cell_width():
+ *	Visual columns taken by one cell of el_display/el_vdisplay.  Prompt
+ *	literals hold a magic character whose wcwidth() is meaningless; the
+ *	width they paint was recorded when they were created.
+ */
+static int
+cell_width(EditLine *el, wint_t c)
+{
+	if (EL_IS_LITERAL(c))
+		return literal_width(el, c);
+	if (c == MB_FILL_CHAR)
+		return 0;
+	return wcwidth((uchar_t)c);
 }
 
 /* re_putliteral():
@@ -482,7 +497,7 @@ re_refresh(EditLine *el)
 	 * clean el_vdisplay *before* the update loop runs.
 	 */
 	{
-		int cur_vcol = display_vcol(
+		int cur_vcol = display_vcol(el,
 		    (const wchar_t *)el->el_vdisplay[cur.v], cur.h);
 		cur.h = cur_vcol;   /* reuse cur.h to mean visual column now */
 		/* If the cursor lands exactly at the visual right edge (only
@@ -725,12 +740,12 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
 		n++;
 #endif
 	terminal_overwrite(el, cp, n);
-	for (p = cp + n; *p != L'\0' && wcwidth(*p) == 0; p++)
+	for (p = cp + n; *p != L'\0' && !EL_IS_LITERAL(*p) && wcwidth(*p) == 0; p++)
 		terminal__putc(el, *p);
 }
 
 /*
- * display_vcol():
+ * display_vcol(el, ):
  * Convert a code-point index in a display array to a visual-column count.
  * Combining marks (wcwidth == 0) occupy a code-point slot but no visual
  * column; double-wide chars (wcwidth == 2) occupy two columns.
@@ -742,14 +757,14 @@ re_overwrite_nc(EditLine *el, wchar_t *cp, size_t n)
  * character counts once rather than once per wchar_t slot.
  */
 static int
-display_vcol(const wchar_t *line, int cpidx)
+display_vcol(EditLine *el, const wchar_t *line, int cpidx)
 {
 	const wchar_t *end = line + cpidx;
 	int col = 0, i = 0;
 
 	while (i < cpidx && line[i] != L'\0') {
 		int adv;
-		col += ct_cp_vcols(&line[i], end, &adv);
+		col += ct_cp_vcols(el, &line[i], end, &adv);
 		i += adv;
 	}
 	return col;
@@ -819,7 +834,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	 * splitting it would emit a half-glyph or move the cursor through a
 	 * cell that has no rendered character.
 	 */
-	while (ofd > old &&
+	while (ofd > old && !EL_IS_LITERAL(*ofd) &&
 	       (wcwidth(*ofd) == 0 || *ofd == MB_FILL_CHAR
 #if SIZEOF_WCHAR_T == 2
 	        || (IS_UTF16_TRAIL(*ofd) && IS_UTF16_LEAD(ofd[-1]))
@@ -1092,11 +1107,11 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	 *   fx_vcol    = net visual width added by the first-diff insertion
 	 *              = visual_width(new[nfd..nsb]) - visual_width(old[ofd..osb]) */
 	{
-	int p_vcol  = display_vcol(old, (int)(p - old));
-	int fx_vcol = (display_vcol(new, (int)(nsb - new)) -
-	               display_vcol(new, (int)(nfd - new))) -
-	              (display_vcol(old, (int)(osb - old)) -
-	               display_vcol(old, (int)(ofd - old)));
+	int p_vcol  = display_vcol(el, old, (int)(p - old));
+	int fx_vcol = (display_vcol(el, new, (int)(nsb - new)) -
+	               display_vcol(el, new, (int)(nfd - new))) -
+	              (display_vcol(el, old, (int)(osb - old)) -
+	               display_vcol(el, old, (int)(ofd - old)));
 	if ((nsb != nfd) && fx > 0 &&
 	    (p_vcol + fx_vcol <= el->el_terminal.t_size.h)) {
 		ELRE_DEBUG(1,
@@ -1107,7 +1122,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		 * NFD combining characters).
 		 */
 		terminal_move_to_char(el,
-		    display_vcol(new, (int)(nfd - new)));
+		    display_vcol(el, new, (int)(nfd - new)));
 		/*
 		 * Check if we have stuff to keep at end
 		 */
@@ -1145,12 +1160,12 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		    __F, "first diff delete at %td...\r\n", ofd - old);
 		rtlog("re_update_line: 1st-diff delete: ofd=%td "
 		      "vcol=%d el_cursor.h=%d fx=%d\n",
-		      ofd - old, display_vcol(old, (int)(ofd - old)),
+		      ofd - old, display_vcol(el, old, (int)(ofd - old)),
 		      el->el_cursor.h, fx);
 		/*
 		 * move to the first char to delete where the first diff is
 		 */
-		terminal_move_to_char(el, display_vcol(old, (int)(ofd - old)));
+		terminal_move_to_char(el, display_vcol(el, old, (int)(ofd - old)));
 		/*
 		 * Check if we have stuff to save
 		 */
@@ -1169,10 +1184,10 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				 * combining marks occupy code-point slots but no
 				 * visual columns, so the two differ. */
 				del_vcols =
-				    (display_vcol(old, (int)(osb - old)) -
-				     display_vcol(old, (int)(ofd - old))) -
-				    (display_vcol(new, (int)(nsb - new)) -
-				     display_vcol(new, (int)(nfd - new)));
+				    (display_vcol(el, old, (int)(osb - old)) -
+				     display_vcol(el, old, (int)(ofd - old))) -
+				    (display_vcol(el, new, (int)(nsb - new)) -
+				     display_vcol(el, new, (int)(nfd - new)));
 				rtlog("  del_vcols=%d (calling deletechars)\n",
 				      del_vcols);
 				if (del_vcols > 0)
@@ -1217,8 +1232,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * has wrapped to the next row; passing num>0 to
 			 * terminal_clear_EOL would then erase that next row. */
 			re_clear_eol(el, 0, 0,
-			    display_vcol(old, (int)(oe - old)) -
-			    display_vcol(new, (int)(ne - new)));
+			    display_vcol(el, old, (int)(oe - old)) -
+			    display_vcol(el, new, (int)(ne - new)));
 			/*
 			 * Done
 			 */
@@ -1228,7 +1243,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		fx = 0;
 	} /* end p_vcol / fx_vcol scope */
 
-	if (sx < 0 && display_vcol(old, (int)(ose - old) + fx) < el->el_terminal.t_size.h) {
+	if (sx < 0 && display_vcol(el, old, (int)(ose - old) + fx) < el->el_terminal.t_size.h) {
 		ELRE_DEBUG(1, __F,
 		    "second diff delete at %td...\r\n", (ose - old) + fx);
 		/*
@@ -1239,7 +1254,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		 */
 
 		/* old[] may have been modified by re_insert/re_delete above */
-		terminal_move_to_char(el, display_vcol(old, (int)(ose - old) + fx));
+		terminal_move_to_char(el, display_vcol(el, old, (int)(ose - old) + fx));
 		/*
 		 * Check if we have stuff to save
 		 */
@@ -1254,10 +1269,10 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				    "ERROR: cannot delete in second diff\n");
 				/* same visual-column conversion as first diff */
 				del_vcols =
-				    (display_vcol(old, (int)(ols - old)) -
-				     display_vcol(old, (int)(ose - old))) -
-				    (display_vcol(new, (int)(nls - new)) -
-				     display_vcol(new, (int)(nse - new)));
+				    (display_vcol(el, old, (int)(ols - old)) -
+				     display_vcol(el, old, (int)(ose - old))) -
+				    (display_vcol(el, new, (int)(nls - new)) -
+				     display_vcol(el, new, (int)(nse - new)));
 				if (del_vcols > 0)
 					terminal_deletechars(el, del_vcols);
 			}
@@ -1273,8 +1288,8 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 			 * the matching comment in the fx<0/nothing-to-save
 			 * branch above. */
 			re_clear_eol(el, 0, 0,
-			    display_vcol(old, (int)(oe - old)) -
-			    display_vcol(new, (int)(ne - new)));
+			    display_vcol(el, old, (int)(oe - old)) -
+			    display_vcol(el, new, (int)(ne - new)));
 		}
 	}
 	/*
@@ -1284,7 +1299,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 		ELRE_DEBUG(1, __F, "late first diff insert at %td...\r\n",
 		    nfd - new);
 
-		terminal_move_to_char(el, display_vcol(new, (int)(nfd - new)));
+		terminal_move_to_char(el, display_vcol(el, new, (int)(nfd - new)));
 		/*
 		 * Check if we have stuff to keep at the end
 		 */
@@ -1326,7 +1341,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 	if (sx >= 0) {
 		ELRE_DEBUG(1, __F,
 		    "second diff insert at %d...\r\n", (int)(nse - new));
-		terminal_move_to_char(el, display_vcol(new, (int)(nse - new)));
+		terminal_move_to_char(el, display_vcol(el, new, (int)(nse - new)));
 		if (ols != oe) {
 			ELRE_DEBUG(1, __F, "with stuff to keep at end\r\n");
 			if (sx > 0) {
@@ -1620,7 +1635,7 @@ re_fastputc(EditLine *el, wint_t c)
 			if ((wint_t)line[cpidx] == MB_FILL_CHAR) {
 				cpidx++; continue;
 			}
-			cw = wcwidth((uchar_t)line[cpidx]);
+			cw = cell_width(el, (wint_t)line[cpidx]);
 			if (cw < 0) cw = 1;
 			if (cw > 0) {
 				vis += cw;
@@ -1629,7 +1644,8 @@ re_fastputc(EditLine *el, wint_t c)
 				 * placeholder following this base char */
 				while (cpidx < (int)EL_BUFSIZ &&
 				    line[cpidx] != L'\0' &&
-				    (wcwidth((uchar_t)line[cpidx]) == 0 ||
+				    ((!EL_IS_LITERAL(line[cpidx]) &&
+				      wcwidth((uchar_t)line[cpidx]) == 0) ||
 				    (wint_t)line[cpidx] == MB_FILL_CHAR))
 					cpidx++;
 			} else {
