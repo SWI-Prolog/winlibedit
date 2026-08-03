@@ -925,6 +925,10 @@ terminal_deletechars(EditLine *el, int num)
 libedit_private void
 terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 {
+	rtlog("terminal_insertwrite(num=%d) entry el_cursor=(v=%d h=%d) "
+	      "IC=%d ic=%d im=%d\n", num, el->el_cursor.v, el->el_cursor.h,
+	      GoodStr(T_IC) ? 1 : 0, GoodStr(T_ic) ? 1 : 0,
+	      (GoodStr(T_im) && GoodStr(T_ei)) ? 1 : 0);
 	if (num <= 0)
 		return;
 	if (!EL_CAN_INSERT) {
@@ -961,6 +965,8 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 				num_vcols += ct_cp_vcols(el, p, end, &adv);
 				p += adv;
 			}
+			rtlog("  insertwrite: IC path, num_vcols=%d\n",
+			      num_vcols);
 			if (num_vcols > 0)
 				terminal_tputs(el,
 				    tgoto(Str(T_IC), num_vcols, num_vcols),
@@ -972,6 +978,7 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 	if (GoodStr(T_im) && GoodStr(T_ei)) {	/* if I have insert mode */
 		const wchar_t *end = cp + num;
 
+		rtlog("  insertwrite: insert-mode path\n");
 		terminal_tputs(el, Str(T_im), 1);
 
 		while (cp < end) {
@@ -1001,6 +1008,7 @@ terminal_insertwrite(EditLine *el, wchar_t *cp, int num)
 			 * code point will paint: two for a wide char, none
 			 * for a combining mark (it joins the cluster in the
 			 * cell before it) or a MB_FILL_CHAR. */
+			rtlog("  insertwrite: per-char ic path, w=%d\n", _w);
 			if (GoodStr(T_ic))
 				for (i = 0; i < _w; i++)
 					terminal_tputs(el, Str(T_ic), 1);
@@ -1540,9 +1548,44 @@ terminal_putc(int c)
 }
 #endif /*__WINDOWS__*/
 
+/* Trace a capability string.  The moves say where the cursor is meant
+ * to go; this says what was sent to get it there, which is the half
+ * that differs between terminal descriptions.
+ */
+
+static void
+rtlog_cap(const char *what, const char *cap)
+{
+	char buf[64];
+	size_t n = 0;
+
+	if (cap == NULL)
+		return;
+	for (const char *p = cap; *p && n < sizeof(buf)-6; p++) {
+		unsigned char c = (unsigned char)*p;
+
+		if (c == 033)
+			n += (size_t)snprintf(buf+n, sizeof(buf)-n, "<ESC>");
+		else if (c == '\r')
+			n += (size_t)snprintf(buf+n, sizeof(buf)-n, "<CR>");
+		else if (c == '\n')
+			n += (size_t)snprintf(buf+n, sizeof(buf)-n, "<NL>");
+		else if (c == '\b')
+			n += (size_t)snprintf(buf+n, sizeof(buf)-n, "<BS>");
+		else if (c >= 0x20 && c < 0x7F)
+			buf[n++] = (char)c;
+		else
+			n += (size_t)snprintf(buf+n, sizeof(buf)-n, "<%02x>", c);
+	}
+	buf[n] = 0;
+	rtlog("  %s: \"%s\"\n", what, buf);
+}
+
+
 static void
 terminal_tputs(EditLine *el, const char *cap, int affcnt)
 {
+	rtlog_cap("terminal_tputs", cap);
 #ifdef __WINDOWS__
         el_printf(el, EL_PTR_OUT, "%s", cap);
 #else
