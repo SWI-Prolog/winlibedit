@@ -54,9 +54,9 @@ __RCSID("$NetBSD: refresh.c,v 1.60 2024/12/05 22:21:53 christos Exp $");
 #include "el.h"
 #include "utf8.h"
 
-#ifdef LIBEDIT_TRACE
+#ifdef LIBEDIT_DEBUG
 /* Refresh / cursor trace, runtime-gated by EL_REFRESH_TRACE env var.
- * Build with -DLIBEDIT_TRACE to compile in; otherwise rtlog and
+ * Build with -DLIBEDIT_DEBUG to compile in; otherwise rtlog and
  * rtlog_wcs are macros that compile away (see el.h).  Used to diagnose
  * cursor / move-by-one bugs around UTF-16 surrogate pairs. */
 #include <stdarg.h>
@@ -106,7 +106,7 @@ rtlog_wcs(const char *label, const wchar_t *s)
   fprintf(el_trace_fp, "\"\n");
   fflush(el_trace_fp);
 }
-#endif /* LIBEDIT_TRACE */
+#endif /* LIBEDIT_DEBUG */
 
 static void	re_nextline(EditLine *);
 static void	re_addc(EditLine *, wint_t);

@@ -184,12 +184,12 @@ struct editline {
 	LineInfo          el_lgcylinfo; /* Legacy LineInfo buffer       */
 };
 
-/* Optional refresh / cursor trace.  Compile with -DLIBEDIT_TRACE to
+/* Optional refresh / cursor trace.  Compile with -DLIBEDIT_DEBUG to
  * activate; at runtime set EL_REFRESH_TRACE=<file> (or "1" for
  * "el-refresh.log" in CWD) to capture cursor/move/delete activity.
  * Used to diagnose Windows surrogate-pair off-by-one bugs.  When the
  * macro is undefined every call site below collapses to nothing. */
-#ifdef LIBEDIT_TRACE
+#ifdef LIBEDIT_DEBUG
 extern void rtlog(const char *fmt, ...);
 extern void rtlog_wcs(const char *label, const wchar_t *s);
 #else

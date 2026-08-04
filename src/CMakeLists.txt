@@ -203,12 +203,15 @@ target_compile_definitions(edit PRIVATE
     _CRT_NONSTDC_NO_WARNINGS
 )
 
-# Refresh/cursor trace.  Compiled out by default; when ON, set
-# EL_REFRESH_TRACE=<file> at runtime to log the cursor moves, the size
-# libedit thinks the terminal has and every character it writes.
-option(LIBEDIT_TRACE "Compile in the libedit refresh trace" OFF)
-if(LIBEDIT_TRACE)
-    target_compile_definitions(edit PRIVATE LIBEDIT_TRACE)
+# Debugging aids, compiled out by default.  The enclosing package
+# declares the option when this is built as part of SWI-Prolog; the
+# option() below is for a build of this directory on its own.  With it
+# on, set EL_REFRESH_TRACE=<file> at runtime to log the cursor moves,
+# the size libedit thinks the terminal has and every character it
+# writes.
+option(LIBEDIT_DEBUG "Compile in the libedit debugging aids" OFF)
+if(LIBEDIT_DEBUG)
+    target_compile_definitions(edit PRIVATE LIBEDIT_DEBUG)
 endif()
 
 install(TARGETS edit
