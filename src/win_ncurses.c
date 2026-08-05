@@ -95,7 +95,30 @@ tgetnum(const char *id)
   return -1;
 }
 
-/* String capabilities: VT100 sequences */
+/* String capabilities: VT100 sequences.
+ *
+ * What belongs here is what the Windows console and an Epilog window
+ * both do, as this table answers for either: the console with
+ * ENABLE_VIRTUAL_TERMINAL_PROCESSING on (see tcenablecolor()), the
+ * window through the xpce terminal that reads the pipe.  Sequences only
+ * one of them understands do not go in, and neither do capabilities
+ * libedit asks for but never uses.  Deliberately absent:
+ *
+ *   im/ei    insert mode (IRM, CSI 4 h).  Not among the sequences the
+ *	      console documents, though the Epilog terminal has it.
+ *   vb	      visible bell (DECSCNM).  Same.
+ *   DO	      cursor down N.  libedit's tstr[] has it and its code never
+ *	      reads it.
+ *   md/me/us/ue/so/se
+ *	      the video attributes.  Both ends do SGR, but libedit only
+ *	      compares the strings to decide TERM_CAN_ME, which nothing
+ *	      then asks about.
+ *   xn	      delayed wrap.  True of an Epilog window and not of a
+ *	      console, which wraps as WriteConsole() writes the last
+ *	      column; terminal_setflags() sets it for Epilog alone.
+ *   pt	      physical tabs, so that the cursor is never moved with one.
+ */
+
 char *
 tgetstr(const char *id, char **area)
 { const char *s = NULL;
@@ -123,6 +146,27 @@ tgetstr(const char *id, char **area)
    * the character *and* the one after it.  One CSI Ps P says how many
    * columns to remove and leaves no room for that mismatch. */
   else if (strcmp(id, "DC") == 0) s = "\x1b[%p1%dP";     // delete Ps chars
+  /* Parameterised motion and insert, for the same reason as DC above:
+   * one sequence that says how far rather than N of them.  It is also
+   * what libedit prefers -- see terminal_move_to_char() -- and it only
+   * emits the single-step ones when these are missing. */
+  else if (strcmp(id, "UP") == 0) s = "\x1b[%p1%dA";     // up Ps rows
+  else if (strcmp(id, "LE") == 0) s = "\x1b[%p1%dD";     // left Ps columns
+  else if (strcmp(id, "RI") == 0) s = "\x1b[%p1%dC";     // right Ps columns
+  else if (strcmp(id, "IC") == 0) s = "\x1b[%p1%d@";     // insert Ps blanks
+  else if (strcmp(id, "ho") == 0) s = "\x1b[H";          // home
+  else if (strcmp(id, "bl") == 0) s = "\a";              // bell
+  /* The keys.  Raw mode asks the console for ENABLE_VIRTUAL_TERMINAL_INPUT
+   * (see tcsetattr() above), so it reports these as the escape sequences
+   * an Epilog window sends anyway.  Without them libedit binds nothing
+   * for the arrows, Home and End: terminal_bind_arrow() skips every key
+   * the description does not name. */
+  else if (strcmp(id, "ku") == 0) s = "\x1b[A";          // cursor up
+  else if (strcmp(id, "kd") == 0) s = "\x1b[B";          // cursor down
+  else if (strcmp(id, "kr") == 0) s = "\x1b[C";          // cursor right
+  else if (strcmp(id, "kl") == 0) s = "\x1b[D";          // cursor left
+  else if (strcmp(id, "kh") == 0) s = "\x1b[H";          // home
+  else if (strcmp(id, "@7") == 0) s = "\x1b[F";          // end
   else if (strcmp(id, "ch") == 0) s = "\x1b[%i%p1%dG";   // Set col
   else if (strcmp(id, "cm") == 0) s = "\x1b[%i%p1%d;%p2%dH";   // Set col&row
   else return NULL;
