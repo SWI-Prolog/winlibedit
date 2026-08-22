@@ -533,7 +533,11 @@ re_refresh(EditLine *el)
 	"\r\nel->el_refresh.r_cursor.v=%d,el->el_refresh.r_oldcv=%d i=%d\r\n",
 	    el->el_refresh.r_cursor.v, el->el_refresh.r_oldcv, i);
 
-	if (el->el_refresh.r_oldcv > el->el_refresh.r_newcv)
+	/* The line got shorter: erase the rows it no longer uses.  The
+	 * attributes of the client are switched off for this, as erasing
+	 * paints with the current background colour.  See EL_ATTRS. */
+	if (el->el_refresh.r_oldcv > el->el_refresh.r_newcv) {
+		terminal_attrs_off(el);
 		for (; i <= el->el_refresh.r_oldcv; i++) {
 			terminal_move_to_line(el, i);
 			terminal_move_to_char(el, 0);
@@ -545,6 +549,8 @@ re_refresh(EditLine *el)
 #endif /* DEBUG_REFRESH */
 			el->el_display[i][0] = '\0';
 		}
+		terminal_attrs_on(el);
+	}
 
 	el->el_refresh.r_oldcv = el->el_refresh.r_newcv; /* set for next time */
 	ELRE_DEBUG(1, __F,
@@ -1761,6 +1767,12 @@ re_clear_display(EditLine *el)
 libedit_private void
 re_clear_lines(EditLine *el)
 {
+
+	/* The attributes of the client are switched off and left off: every
+	 * caller either redraws the line from scratch afterwards, which
+	 * puts them back, or (EL_ERASELINE) writes unrelated output that
+	 * must not be decorated as input.  See EL_ATTRS. */
+	terminal_attrs_off(el);
 
 	if (EL_CAN_CEOL) {
 		int i;

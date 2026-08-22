@@ -182,6 +182,8 @@ struct editline {
 	ct_buffer_t       el_scratch;   /* Scratch conversion buffer    */
 	ct_buffer_t       el_lgcyconv;  /* Buffer for legacy wrappers   */
 	LineInfo          el_lgcylinfo; /* Legacy LineInfo buffer       */
+	char		 *el_attrs_off;	/* Turn client attributes off	*/
+	char		 *el_attrs_on;	/* And put them back again	*/
 };
 
 /* Optional refresh / cursor trace.  Compile with -DLIBEDIT_DEBUG to

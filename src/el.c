@@ -203,6 +203,8 @@ el_end(EditLine *el)
 	sig_end(el);
 	literal_end(el);
 
+	el_free(el->el_attrs_off);
+	el_free(el->el_attrs_on);
 	el_free(el->el_prog);
 	el_free(el->el_visual.cbuff);
 	el_free(el->el_visual.wbuff);
@@ -223,6 +225,31 @@ el_reset(EditLine *el)
 
 	tty_cookedmode(el);
 	ch_reset(el);		/* XXX: Do we want that? */
+}
+
+
+/* el_attrs_set():
+ *	Remember how to switch the client's display attributes off and on
+ *	again.  Either may be NULL or empty, which disables the feature.
+ */
+static int
+el_attrs_set(EditLine *el, const char *off, const char *on)
+{
+	char *noff = NULL, *non = NULL;
+
+	if (off != NULL && *off != '\0' && (noff = strdup(off)) == NULL)
+		return -1;
+	if (on != NULL && *on != '\0' && (non = strdup(on)) == NULL) {
+		el_free(noff);
+		return -1;
+	}
+
+	el_free(el->el_attrs_off);
+	el_free(el->el_attrs_on);
+	el->el_attrs_off = noff;
+	el->el_attrs_on = non;
+
+	return 0;
 }
 
 
@@ -467,6 +494,21 @@ el_wset(EditLine *el, int op, ...)
 	case EL_WORDCHARS:
 		rv = map_set_wordchars(el, va_arg(ap, wchar_t *));
 		break;
+
+	/* The attributes the client leaves in effect while we own the
+	 * screen, e.g. to colour the line being edited.  We cannot know
+	 * them, but we must be able to switch them off: erasing part of
+	 * the screen paints it with the current background colour on a
+	 * terminal that implements background colour erase.  See
+	 * terminal_attrs_off(). */
+	case EL_ATTRS: {
+		const char *off = va_arg(ap, char *);
+		const char *on = va_arg(ap, char *);
+
+		rv = el_attrs_set(el, off, on);
+		break;
+	}
+
 	default:
 		rv = -1;
 		break;

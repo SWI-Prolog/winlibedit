@@ -179,6 +179,7 @@ unsigned char	_el_fn_sh_complete(EditLine *, int);
 #define	EL_GETHANDLE	28	/* , int, HANDLE **);		      get */
 #define	EL_WCWIDTH	29	/* , el_wcwfunc_t);		      set/get */
 #define	EL_ERASELINE	30	/* , void);			      set     */
+#define	EL_ATTRS	31	/* , const char *, const char *);     set     */
 
 #define	EL_BUILTIN_GETCFN	(NULL)
 

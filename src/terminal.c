@@ -1046,6 +1046,52 @@ terminal_clear_EOL(EditLine *el, int num)
 }
 
 
+/* terminal_attrs_off(), terminal_attrs_on():
+ *	Switch the display attributes of the client off and back on.  See
+ *	EL_ATTRS.
+ *
+ *	Erasing part of the screen paints it with the current background
+ *	colour on a terminal that implements _background colour erase_,
+ *	which all common ones do.  If the client leaves a background
+ *	colour in effect to decorate the line being edited, the rows we
+ *	erase because the line got shorter are painted with it and stay
+ *	that way.  So we erase with the attributes off and put them back
+ *	afterwards, as we cannot know them well enough to restore them
+ *	ourselves.
+ *
+ *	The strings are written as-is: they are not terminfo capabilities,
+ *	so they must not go through tputs(3), which would eat a leading
+ *	digit as a padding count.
+ */
+/* terminal_puts():
+ *	Write a plain string that neither moves the cursor nor needs
+ *	terminfo padding.
+ */
+libedit_private void
+terminal_puts(EditLine *el, const char *str)
+{
+#ifdef __WINDOWS__
+	el_printf(el, EL_PTR_OUT, "%s", str);
+#else
+	(void) fputs(str, el->el_outfile);
+#endif
+}
+
+libedit_private void
+terminal_attrs_off(EditLine *el)
+{
+	if (el->el_attrs_off != NULL)
+		terminal_puts(el, el->el_attrs_off);
+}
+
+libedit_private void
+terminal_attrs_on(EditLine *el)
+{
+	if (el->el_attrs_on != NULL)
+		terminal_puts(el, el->el_attrs_on);
+}
+
+
 /* terminal_clear_screen():
  *	Clear the screen
  */
@@ -1299,9 +1345,10 @@ terminal_change_size(EditLine *el, int lins, int cols)
 						    Str(T_up), 1);
 			}
 			terminal__putc(el, '\r');
-			if (GoodStr(T_cd))
+			if (GoodStr(T_cd)) {
+				terminal_attrs_off(el);
 				terminal_tputs(el, Str(T_cd), Val(T_li));
-			else
+			} else
 				re_clear_lines(el);
 		}
 	}

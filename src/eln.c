@@ -147,6 +147,14 @@ el_set(EditLine *el, int op, ...)
 		ret = el_wset(el, op, va_arg(ap, char *));
 		break;
 
+	case EL_ATTRS: {	/* const char *, const char * */
+		char *off = va_arg(ap, char *);
+		char *on = va_arg(ap, char *);
+
+		ret = el_wset(el, op, off, on);
+		break;
+	}
+
 	case EL_EDITOR:		/* const wchar_t * */
 	case EL_WORDCHARS:	/* const wchar_t * */
 		ret = el_wset(el, op, ct_decode_string(va_arg(ap, char *),
