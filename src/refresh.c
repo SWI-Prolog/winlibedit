@@ -1596,6 +1596,18 @@ re_fastputc(EditLine *el, wint_t c)
 
 	w = wcwidth(c);
 
+	/* The row we are about to write on may be one the display does
+	 * not count yet.  A line that exactly fills a row leaves the
+	 * cursor at the start of the next one, but re_refresh() counts
+	 * the rows it painted, and it painted none there.  Count it now
+	 * that a character lands on it: re_goto_bottom() would otherwise
+	 * end the line one row too high and the client's output would be
+	 * written over the last row of the input, and
+	 * re_fastputc_resolve_wrap() below would clear the wrong row.
+	 */
+	if (el->el_cursor.v > el->el_refresh.r_oldcv)
+		el->el_refresh.r_oldcv = el->el_cursor.v;
+
 	/* Defer-resolve: if a previous base char filled the row but we
 	 * held back the wrap so any trailing combining mark could attach
 	 * to it, a non-combining character here means the cluster is
