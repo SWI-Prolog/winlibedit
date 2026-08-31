@@ -643,6 +643,36 @@ ed_start_over(EditLine *el, wint_t c __attribute__((__unused__)))
 }
 
 
+/* ed_undo():
+ *	Undo the last change
+ *	[^_]
+ */
+libedit_private el_action_t
+/*ARGSUSED*/
+ed_undo(EditLine *el, wint_t c __attribute__((__unused__)))
+{
+
+	if (c_undo_apply(el, 0) == -1)
+		return CC_ERROR;
+	return CC_REFRESH;
+}
+
+
+/* ed_redo():
+ *	Redo the last undone change
+ *	[M-_]
+ */
+libedit_private el_action_t
+/*ARGSUSED*/
+ed_redo(EditLine *el, wint_t c __attribute__((__unused__)))
+{
+
+	if (c_undo_apply(el, 1) == -1)
+		return CC_ERROR;
+	return CC_REFRESH;
+}
+
+
 /* ed_sequence_lead_in():
  *	First character in a bound sequence
  *	Placeholder for external keys
@@ -668,7 +698,6 @@ ed_prev_history(EditLine *el, wint_t c __attribute__((__unused__)))
 	char beep = 0;
 	int sv_event = el->el_history.eventno;
 
-	el->el_chared.c_undo.len = -1;
 	*el->el_line.lastchar = '\0';		/* just in case */
 
 	if (el->el_history.eventno == 0) {	/* save the current buffer
@@ -704,7 +733,6 @@ ed_next_history(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 	el_action_t beep = CC_REFRESH, rval;
 
-	el->el_chared.c_undo.len = -1;
 	*el->el_line.lastchar = '\0';	/* just in case */
 
 	el->el_history.eventno -= el->el_state.argument;
@@ -734,7 +762,6 @@ ed_search_prev_history(EditLine *el, wint_t c __attribute__((__unused__)))
 	int found = 0;
 
 	el->el_chared.c_vcmd.action = NOP;
-	el->el_chared.c_undo.len = -1;
 	*el->el_line.lastchar = '\0';	/* just in case */
 	if (el->el_history.eventno < 0) {
 #ifdef DEBUG_EDIT
@@ -802,7 +829,6 @@ ed_search_next_history(EditLine *el, wint_t c __attribute__((__unused__)))
 	int found = 0;
 
 	el->el_chared.c_vcmd.action = NOP;
-	el->el_chared.c_undo.len = -1;
 	*el->el_line.lastchar = '\0';	/* just in case */
 
 	if (el->el_history.eventno == 0)

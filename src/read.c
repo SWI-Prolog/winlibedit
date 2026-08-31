@@ -594,6 +594,13 @@ el_wgets(EditLine *el, int *nread)
 		}
 		retval = (*el->el_map.func[cmdnum]) (el, ch);
 
+		/* Record the edit, if any.  This must come before
+		 * lastcmd is updated below: coalescing a run of inserts
+		 * asks what the *previous* command was.  It must also
+		 * come before the switch, whose CC_ARGHACK arm continues
+		 * the loop without reaching the end of the body. */
+		c_undo_record(el, cmdnum);
+
 		/* save the last command here */
 		el->el_state.lastcmd = cmdnum;
 

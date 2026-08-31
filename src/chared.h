@@ -53,12 +53,26 @@
 #define	VI_MOVE
 
 /*
- * Undo information for vi - no undo in emacs (yet)
+ * Undo/redo.  A saved line is an independent copy rather than a pointer
+ * into el_line.buffer, so that ch_enlargebufs() need not rebase it.
  */
-typedef struct c_undo_t {
-	ssize_t	 len;			/* length of saved line */
+typedef struct c_undo_line_t {
+	wchar_t	*buf;			/* full saved text, malloc'ed */
+	size_t	 len;			/* length of saved line */
 	int	 cursor;		/* position of saved cursor */
-	wchar_t	*buf;			/* full saved text */
+	int	 eventno;		/* history event it came from */
+} c_undo_line_t;
+
+#define	C_UNDO_MAX	64		/* deepest history we keep */
+
+typedef struct c_undo_t {
+	c_undo_line_t	*undo;		/* stack, oldest first */
+	size_t		 nundo;
+	c_undo_line_t	*redo;		/* stack, oldest first */
+	size_t		 nredo;
+	c_undo_line_t	 cur;		/* line as of the last record */
+	int		 valid;		/* cur holds a line */
+	int		 in_undo;	/* do not record our own edit */
 } c_undo_t;
 
 /* redo for vi */
@@ -131,7 +145,11 @@ libedit_private void	 cv_delfini(EditLine *);
 libedit_private wchar_t *cv__endword(EditLine *, wchar_t *, wchar_t *, int,
     int (*)(EditLine *, wint_t));
 libedit_private int	 ce__isword(EditLine *, wint_t);
-libedit_private void	 cv_undo(EditLine *);
+libedit_private void	 cv_redo_start(EditLine *);
+libedit_private void	 c_undo_reset(EditLine *);
+libedit_private void	 c_undo_end(EditLine *);
+libedit_private void	 c_undo_record(EditLine *, el_action_t);
+libedit_private int	 c_undo_apply(EditLine *, int);
 libedit_private void	 cv_yank(EditLine *, const wchar_t *, int);
 libedit_private wchar_t *cv_next_word(EditLine*, wchar_t *, wchar_t *, int,
 			int (*)(EditLine *, wint_t));

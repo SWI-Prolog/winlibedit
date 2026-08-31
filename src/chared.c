@@ -47,36 +47,275 @@ __RCSID("$NetBSD: chared.c,v 1.64 2024/06/29 14:13:14 christos Exp $");
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wctype.h>
 
 #include "el.h"
 #include "common.h"
 #include "fcns.h"
+#include "utf8.h"
 
 /* value to leave unused in line buffer */
 #define	EL_LEAVE	2
 
-/* cv_undo():
- *	Handle state for the vi undo command
+/* cv_redo_start():
+ *	Note that a change command begins here, for the vi redo command.
+ *	Undo is recorded by the read loop, see c_undo_record().
  */
 libedit_private void
-cv_undo(EditLine *el)
+cv_redo_start(EditLine *el)
 {
-	c_undo_t *vu = &el->el_chared.c_undo;
 	c_redo_t *r = &el->el_chared.c_redo;
-	size_t size;
 
-	/* Save entire line for undo */
-	size = (size_t)(el->el_line.lastchar - el->el_line.buffer);
-	vu->len = (ssize_t)size;
-	vu->cursor = (int)(el->el_line.cursor - el->el_line.buffer);
-	(void)memcpy(vu->buf, el->el_line.buffer, size * sizeof(*vu->buf));
-
-	/* save command info for redo */
+	/* save command info for redo.  r->pos = r->buf is the only rewind
+	 * of the key capture read.c fills in vi command mode. */
 	r->count = el->el_state.doingarg ? el->el_state.argument : 0;
 	r->action = el->el_chared.c_vcmd.action;
 	r->pos = r->buf;
 	r->cmd = el->el_state.thiscmd;
 	r->ch = el->el_state.thisch;
+}
+
+
+		/************************************************************
+		 *			UNDO / REDO			    *
+		 ************************************************************/
+
+/* The line is saved as an independent copy rather than as a pointer into
+ * el_line.buffer, so ch_enlargebufs() need not rebase it and a snapshot
+ * survives any reallocation.  Recording happens in one place, the command
+ * dispatch loop of el_wgets(), which is the only point that sees every
+ * edit as a finished unit -- several commands write the line without
+ * going through c_insert()/c_delafter()/c_delbefore().
+ */
+
+/* c_undo_free():
+ *	Discard a stack of saved lines
+ */
+static void
+c_undo_free(c_undo_line_t **stack, size_t *n)
+{
+	size_t i;
+
+	for (i = 0; i < *n; i++)
+		el_free((*stack)[i].buf);
+	el_free(*stack);
+	*stack = NULL;
+	*n = 0;
+}
+
+
+/* c_undo_save():
+ *	Copy the current line into `to'.  Answers -1 on failure, in which
+ *	case `to' is left empty rather than stale.
+ */
+static int
+c_undo_save(EditLine *el, c_undo_line_t *to)
+{
+	ssize_t len = el->el_line.lastchar - el->el_line.buffer;
+	wchar_t *buf;
+
+	if (len < 0)			/* the SIGINT handler can shorten
+					   the line under a command */
+		len = 0;
+	buf = el_realloc(to->buf, ((size_t)len + 1) * sizeof(*buf));
+	if (buf == NULL) {
+		el_free(to->buf);
+		to->buf = NULL;
+		to->len = 0;
+		return -1;
+	}
+	(void)memcpy(buf, el->el_line.buffer, (size_t)len * sizeof(*buf));
+	buf[len] = '\0';
+	to->buf = buf;
+	to->len = (size_t)len;
+	to->cursor = (int)(el->el_line.cursor - el->el_line.buffer);
+	to->eventno = el->el_history.eventno;
+	return 0;
+}
+
+
+/* c_undo_push():
+ *	Push a copy of `from' onto a stack, dropping the oldest entry once
+ *	the stack is full.  Takes ownership of nothing; it copies.
+ */
+static int
+c_undo_push(c_undo_line_t **stack, size_t *n, const c_undo_line_t *from)
+{
+	c_undo_line_t *ns;
+	wchar_t *buf;
+
+	if (*n == C_UNDO_MAX) {		/* drop the oldest */
+		el_free((*stack)[0].buf);
+		(void)memmove(*stack, *stack + 1,
+		    (C_UNDO_MAX - 1) * sizeof(**stack));
+		(*n)--;
+	}
+	ns = el_realloc(*stack, (*n + 1) * sizeof(*ns));
+	if (ns == NULL)
+		return -1;
+	*stack = ns;
+	buf = el_malloc((from->len + 1) * sizeof(*buf));
+	if (buf == NULL)
+		return -1;
+	(void)memcpy(buf, from->buf, from->len * sizeof(*buf));
+	buf[from->len] = '\0';
+	ns[*n] = *from;
+	ns[*n].buf = buf;
+	(*n)++;
+	return 0;
+}
+
+
+/* c_undo_restore():
+ *	Put a saved line back.  The line buffer only ever grows within one
+ *	line's lifetime and the stacks are cleared by ch_reset(), so a
+ *	snapshot always fits; check anyway.
+ */
+static void
+c_undo_restore(EditLine *el, const c_undo_line_t *from)
+{
+	size_t max = (size_t)(el->el_line.limit - el->el_line.buffer);
+	size_t len = from->len < max ? from->len : max;
+
+	(void)memcpy(el->el_line.buffer, from->buf, len * sizeof(wchar_t));
+	el->el_line.lastchar = el->el_line.buffer + len;
+	*el->el_line.lastchar = '\0';
+	el->el_line.cursor = el->el_line.buffer +
+	    ((size_t)from->cursor < len ? (size_t)from->cursor : len);
+	el->el_history.eventno = from->eventno;
+}
+
+
+/* c_undo_reset():
+ *	Forget the undo history.  Called per line from ch_reset().
+ */
+libedit_private void
+c_undo_reset(EditLine *el)
+{
+	c_undo_t *un = &el->el_chared.c_undo;
+
+	c_undo_free(&un->undo, &un->nundo);
+	c_undo_free(&un->redo, &un->nredo);
+	un->in_undo = 0;
+	un->valid = 0;
+	if (el->el_line.buffer != NULL && c_undo_save(el, &un->cur) == 0)
+		un->valid = 1;
+}
+
+
+/* c_undo_end():
+ *	Release everything.  ch_end() calls this before ch_reset().
+ */
+libedit_private void
+c_undo_end(EditLine *el)
+{
+	c_undo_t *un = &el->el_chared.c_undo;
+
+	c_undo_free(&un->undo, &un->nundo);
+	c_undo_free(&un->redo, &un->nredo);
+	el_free(un->cur.buf);
+	un->cur.buf = NULL;
+	un->cur.len = 0;
+	un->valid = 0;
+}
+
+
+/* c_undo_coalesce():
+ *	Should this command join the run recorded by the previous one?
+ *	A run of self-insert is one unit, so undo takes back a word rather
+ *	than a letter, but it stops at a space the way readline does.
+ */
+static int
+c_undo_coalesce(EditLine *el, el_action_t cmd)
+{
+
+	return cmd == ED_INSERT && el->el_state.lastcmd == ED_INSERT &&
+	    !iswspace(el->el_state.thisch);
+}
+
+
+/* c_undo_record():
+ *	Called from the dispatch loop after every command, before
+ *	el_state.lastcmd is updated -- the coalescing test above needs
+ *	lastcmd to still be the previous command.
+ */
+libedit_private void
+c_undo_record(EditLine *el, el_action_t cmd)
+{
+	c_undo_t *un = &el->el_chared.c_undo;
+	ssize_t len = el->el_line.lastchar - el->el_line.buffer;
+
+	if (len < 0)
+		len = 0;
+
+	/* A supplementary code point arrives as two wchar_t and the line
+	 * holds only the lead surrogate at this point (see ed_insert()).
+	 * Recording now could leave an undo on half a code point. */
+#if SIZEOF_WCHAR_T == 2
+	if (IS_UTF16_LEAD(el->el_state.thisch))
+		return;
+#endif
+
+	if (!un->valid) {		/* could not save; try again */
+		if (c_undo_save(el, &un->cur) == 0)
+			un->valid = 1;
+		un->in_undo = 0;
+		return;
+	}
+
+	if (un->in_undo) {		/* our own edit: resync, keep redo */
+		un->in_undo = 0;
+		(void)c_undo_save(el, &un->cur);
+		return;
+	}
+
+	if ((size_t)len == un->cur.len &&
+	    memcmp(el->el_line.buffer, un->cur.buf,
+		   (size_t)len * sizeof(wchar_t)) == 0) {
+		/* text unchanged: keep the cursor current, so a later
+		 * snapshot restores where the user actually was */
+		un->cur.cursor = (int)(el->el_line.cursor - el->el_line.buffer);
+		un->cur.eventno = el->el_history.eventno;
+		return;
+	}
+
+	if (!c_undo_coalesce(el, cmd)) {
+		if (c_undo_push(&un->undo, &un->nundo, &un->cur) == -1) {
+			un->valid = 0;
+			return;
+		}
+		c_undo_free(&un->redo, &un->nredo);
+	}
+	if (c_undo_save(el, &un->cur) == -1)
+		un->valid = 0;
+}
+
+
+/* c_undo_apply():
+ *	Step one line backwards, or forwards when `redo' is set.  Answers
+ *	-1 when there is nothing to step to.
+ */
+libedit_private int
+c_undo_apply(EditLine *el, int redo)
+{
+	c_undo_t *un = &el->el_chared.c_undo;
+	c_undo_line_t **from = redo ? &un->redo : &un->undo;
+	size_t *nfrom = redo ? &un->nredo : &un->nundo;
+	c_undo_line_t **to = redo ? &un->undo : &un->redo;
+	size_t *nto = redo ? &un->nundo : &un->nredo;
+
+	if (*nfrom == 0 || !un->valid)
+		return -1;
+	if (c_undo_push(to, nto, &un->cur) == -1)
+		return -1;
+
+	(*nfrom)--;
+	c_undo_restore(el, &(*from)[*nfrom]);
+	el_free((*from)[*nfrom].buf);
+	(*from)[*nfrom].buf = NULL;
+
+	un->in_undo = 1;		/* do not record what we just did */
+	return 0;
 }
 
 /* cv_yank():
@@ -125,7 +364,7 @@ c_delafter(EditLine *el, int num)
 		num = (int)(el->el_line.lastchar - el->el_line.cursor);
 
 	if (el->el_map.current != el->el_map.emacs) {
-		cv_undo(el);
+		cv_redo_start(el);
 		cv_yank(el, el->el_line.cursor, num);
 	}
 
@@ -166,7 +405,7 @@ c_delbefore(EditLine *el, int num)
 		num = (int)(el->el_line.cursor - el->el_line.buffer);
 
 	if (el->el_map.current != el->el_map.emacs) {
-		cv_undo(el);
+		cv_redo_start(el);
 		cv_yank(el, el->el_line.cursor - num, num);
 	}
 
@@ -422,12 +661,6 @@ ch_init(EditLine *el)
 	el->el_line.lastchar		= el->el_line.buffer;
 	el->el_line.limit		= &el->el_line.buffer[EL_BUFSIZ - EL_LEAVE];
 
-	el->el_chared.c_undo.buf	= el_calloc(EL_BUFSIZ,
-	    sizeof(*el->el_chared.c_undo.buf));
-	if (el->el_chared.c_undo.buf == NULL)
-		return -1;
-	el->el_chared.c_undo.len	= -1;
-	el->el_chared.c_undo.cursor	= 0;
 	el->el_chared.c_redo.buf	= el_calloc(EL_BUFSIZ,
 	    sizeof(*el->el_chared.c_redo.buf));
 	if (el->el_chared.c_redo.buf == NULL)
@@ -473,8 +706,7 @@ ch_reset(EditLine *el)
 	el->el_line.cursor		= el->el_line.buffer;
 	el->el_line.lastchar		= el->el_line.buffer;
 
-	el->el_chared.c_undo.len	= -1;
-	el->el_chared.c_undo.cursor	= 0;
+	c_undo_reset(el);
 
 	el->el_chared.c_vcmd.action	= NOP;
 	el->el_chared.c_vcmd.pos	= el->el_line.buffer;
@@ -549,18 +781,15 @@ ch_enlargebufs(EditLine *el, size_t addlen)
 					(el->el_chared.c_kill.last - oldkbuf);
 	el->el_chared.c_kill.mark = el->el_line.buffer +
 					(el->el_chared.c_kill.mark - oldbuf);
+	/* c_vcmd.pos is held across a dispatch iteration by cv_action(),
+	 * and cv_delfini() dereferences it after the motion command may
+	 * have grown the line. */
+	if (el->el_chared.c_vcmd.pos != NULL)
+		el->el_chared.c_vcmd.pos = el->el_line.buffer +
+					(el->el_chared.c_vcmd.pos - oldbuf);
 
-	/*
-	 * Reallocate undo buffer.
-	 */
-	newbuffer = el_realloc(el->el_chared.c_undo.buf,
-	    newsz * sizeof(*newbuffer));
-	if (!newbuffer)
-		return 0;
-
-	/* zero the newly added memory, leave old data in */
-	(void) memset(&newbuffer[sz], 0, (newsz - sz) * sizeof(*newbuffer));
-	el->el_chared.c_undo.buf = newbuffer;
+	/* The undo stack holds independent copies, so it needs no rebasing
+	 * and no growing here. */
 
 	newbuffer = el_realloc(el->el_chared.c_redo.buf,
 	    newsz * sizeof(*newbuffer));
@@ -591,8 +820,7 @@ ch_end(EditLine *el)
 	el_free(el->el_line.buffer);
 	el->el_line.buffer = NULL;
 	el->el_line.limit = NULL;
-	el_free(el->el_chared.c_undo.buf);
-	el->el_chared.c_undo.buf = NULL;
+	c_undo_end(el);
 	el_free(el->el_chared.c_redo.buf);
 	el->el_chared.c_redo.buf = NULL;
 	el->el_chared.c_redo.pos = NULL;

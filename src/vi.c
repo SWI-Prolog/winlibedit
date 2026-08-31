@@ -77,7 +77,7 @@ cv_action(EditLine *el, wint_t c)
 			return CC_ERROR;
 
 		if (!(c & YANK))
-			cv_undo(el);
+			cv_redo_start(el);
 		cv_yank(el, el->el_line.buffer,
 		    (int)(el->el_line.lastchar - el->el_line.buffer));
 		el->el_chared.c_vcmd.action = NOP;
@@ -112,7 +112,7 @@ cv_paste(EditLine *el, wint_t c)
 	    k->buf);
 #endif
 
-	cv_undo(el);
+	cv_redo_start(el);
 
 	if (!c && el->el_line.cursor < el->el_line.lastchar)
 		el->el_line.cursor++;
@@ -262,7 +262,7 @@ vi_change_case(EditLine *el, wint_t c)
 
 	if (el->el_line.cursor >= el->el_line.lastchar)
 		return CC_ERROR;
-	cv_undo(el);
+	cv_redo_start(el);
 	for (i = 0; i < el->el_state.argument; i++) {
 
 		c = *el->el_line.cursor;
@@ -309,7 +309,7 @@ vi_insert_at_bol(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
 	el->el_line.cursor = el->el_line.buffer;
-	cv_undo(el);
+	cv_redo_start(el);
 	el->el_map.current = el->el_map.key;
 	return CC_CURSOR;
 }
@@ -329,7 +329,7 @@ vi_replace_char(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	el->el_map.current = el->el_map.key;
 	el->el_state.inputmode = MODE_REPLACE_1;
-	cv_undo(el);
+	cv_redo_start(el);
 	return CC_ARGHACK;
 }
 
@@ -345,7 +345,7 @@ vi_replace_mode(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	el->el_map.current = el->el_map.key;
 	el->el_state.inputmode = MODE_REPLACE;
-	cv_undo(el);
+	cv_redo_start(el);
 	return CC_NORM;
 }
 
@@ -374,7 +374,7 @@ libedit_private el_action_t
 vi_substitute_line(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
-	cv_undo(el);
+	cv_redo_start(el);
 	cv_yank(el, el->el_line.buffer,
 	    (int)(el->el_line.lastchar - el->el_line.buffer));
 	(void) em_kill_line(el, 0);
@@ -392,7 +392,7 @@ libedit_private el_action_t
 vi_change_to_eol(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
-	cv_undo(el);
+	cv_redo_start(el);
 	cv_yank(el, el->el_line.cursor,
 	    (int)(el->el_line.lastchar - el->el_line.cursor));
 	(void) ed_kill_line(el, 0);
@@ -411,7 +411,7 @@ vi_insert(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
 	el->el_map.current = el->el_map.key;
-	cv_undo(el);
+	cv_redo_start(el);
 	return CC_NORM;
 }
 
@@ -435,7 +435,7 @@ vi_add(EditLine *el, wint_t c __attribute__((__unused__)))
 	} else
 		ret = CC_NORM;
 
-	cv_undo(el);
+	cv_redo_start(el);
 
 	return (el_action_t)ret;
 }
@@ -452,7 +452,7 @@ vi_add_at_eol(EditLine *el, wint_t c __attribute__((__unused__)))
 
 	el->el_map.current = el->el_map.key;
 	el->el_line.cursor = el->el_line.lastchar;
-	cv_undo(el);
+	cv_redo_start(el);
 	return CC_CURSOR;
 }
 
@@ -526,21 +526,12 @@ libedit_private el_action_t
 /*ARGSUSED*/
 vi_undo(EditLine *el, wint_t c __attribute__((__unused__)))
 {
-	c_undo_t un = el->el_chared.c_undo;
 
-	if (un.len == -1)
+	/* This used to swap el_line.buffer with a single saved copy, so
+	 * `u' toggled.  It now steps back through the undo stack, like a
+	 * real vi.  See c_undo_record() in chared.c. */
+	if (c_undo_apply(el, 0) == -1)
 		return CC_ERROR;
-
-	/* switch line buffer and undo buffer */
-	el->el_chared.c_undo.buf = el->el_line.buffer;
-	el->el_chared.c_undo.len = el->el_line.lastchar - el->el_line.buffer;
-	el->el_chared.c_undo.cursor =
-	    (int)(el->el_line.cursor - el->el_line.buffer);
-	el->el_line.limit = un.buf + (el->el_line.limit - el->el_line.buffer);
-	el->el_line.buffer = un.buf;
-	el->el_line.cursor = un.buf + un.cursor;
-	el->el_line.lastchar = un.buf + un.len;
-
 	return CC_REFRESH;
 }
 
@@ -862,7 +853,7 @@ libedit_private el_action_t
 vi_undo_line(EditLine *el, wint_t c __attribute__((__unused__)))
 {
 
-	cv_undo(el);
+	cv_redo_start(el);
 	return hist_get(el);
 }
 
@@ -1119,7 +1110,7 @@ vi_history_word(EditLine *el, wint_t c __attribute__((__unused__)))
 	if (wsp == NULL || (el->el_state.doingarg && el->el_state.argument != 0))
 		return CC_ERROR;
 
-	cv_undo(el);
+	cv_redo_start(el);
 	len = (int)(wep - wsp);
 	if (el->el_line.cursor < el->el_line.lastchar)
 		el->el_line.cursor++;

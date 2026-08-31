@@ -98,7 +98,7 @@ static const el_action_t  el_map_emacs[] = {
 	/*  28 */	ED_IGNORE,		/* ^\ */
 	/*  29 */	ED_IGNORE,		/* ^] */
 	/*  30 */	ED_UNASSIGNED,		/* ^^ */
-	/*  31 */	ED_UNASSIGNED,		/* ^_ */
+	/*  31 */	ED_UNDO,		/* ^_ */
 	/*  32 */	ED_INSERT,		/* SPACE */
 	/*  33 */	ED_INSERT,		/* ! */
 	/*  34 */	ED_INSERT,		/* " */
@@ -290,7 +290,7 @@ static const el_action_t  el_map_emacs[] = {
 	/* 220 */	ED_UNASSIGNED,		/* M-\ */
 	/* 221 */	ED_UNASSIGNED,		/* M-] */
 	/* 222 */	ED_UNASSIGNED,		/* M-^ */
-	/* 223 */	ED_UNASSIGNED,		/* M-_ */
+	/* 223 */	ED_REDO,		/* M-_ */
 	/* 223 */	ED_UNASSIGNED,		/* M-` */
 	/* 224 */	ED_UNASSIGNED,		/* M-a */
 	/* 225 */	ED_PREV_WORD,		/* M-b */
