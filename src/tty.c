@@ -118,7 +118,11 @@ static const ttychar_t ttychar = {
 		CINTR, CQUIT, CERASE, CKILL,
 		_POSIX_VDISABLE, _POSIX_VDISABLE, _POSIX_VDISABLE, _POSIX_VDISABLE,
 		_POSIX_VDISABLE, CERASE2, CSTART, CSTOP,
-		_POSIX_VDISABLE, CSUSP, _POSIX_VDISABLE, _POSIX_VDISABLE,
+		/* ^Z is undo while we are editing; the cooked modes above
+		 * and below keep CSUSP, so a child on the terminal still
+		 * suspends -- we are not reading a line then. */
+		_POSIX_VDISABLE, _POSIX_VDISABLE, _POSIX_VDISABLE,
+		_POSIX_VDISABLE,
 		CDISCARD, _POSIX_VDISABLE, _POSIX_VDISABLE, _POSIX_VDISABLE,
 		_POSIX_VDISABLE, _POSIX_VDISABLE, _POSIX_VDISABLE, 1,
 		0

@@ -93,7 +93,7 @@ static const el_action_t  el_map_emacs[] = {
 	/*  23 */	ED_DELETE_PREV_WORD,	/* ^W */
 	/*  24 */	ED_SEQUENCE_LEAD_IN,	/* ^X */
 	/*  25 */	EM_YANK,		/* ^Y */
-	/*  26 */	ED_IGNORE,		/* ^Z */
+	/*  26 */	ED_UNDO,		/* ^Z */
 	/*  27 */	EM_META_NEXT,		/* ^[ */
 	/*  28 */	ED_IGNORE,		/* ^\ */
 	/*  29 */	ED_IGNORE,		/* ^] */
