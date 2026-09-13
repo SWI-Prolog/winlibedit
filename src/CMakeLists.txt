@@ -184,8 +184,21 @@ endif()
 # -------------------------------------------------------------------------
 # Build library
 # -------------------------------------------------------------------------
+# terminal.c serialises tputs() on a mutex when _REENTRANT is defined,
+# which is what the compiler does for -pthread.  Carry the dependency on
+# the library itself, so that whoever links `edit` does not have to know
+# about it.  Without a threading library the mutex compiles away.
+
+if(NOT TARGET Threads::Threads)
+  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+  find_package(Threads)
+endif()
+
 add_library(edit ${LIBEDIT_SOURCES} ${GENERATED_HEADERS})
 target_link_libraries(edit PUBLIC ${TERMCAP_LIB})
+if(TARGET Threads::Threads)
+  target_link_libraries(edit PUBLIC Threads::Threads)
+endif()
 set_target_properties(edit PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_dependencies(edit generate_headers)
 
