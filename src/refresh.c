@@ -577,6 +577,11 @@ re_goto_bottom(EditLine *el)
 {
 
 	terminal_move_to_line(el, el->el_refresh.r_oldcv);
+	/* The attributes of the client are switched off and left off: the
+	 * line is finished and if the newline scrolls the screen, the new
+	 * row is painted with the current background colour.  See
+	 * EL_ATTRS. */
+	terminal_attrs_off(el);
 	terminal__putc(el, '\n');
 	re_clear_display(el);
 	terminal__flush(el);
