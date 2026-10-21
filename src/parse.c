@@ -59,6 +59,7 @@ __RCSID("$NetBSD: parse.c,v 1.42 2019/07/23 10:18:52 christos Exp $");
 
 #include "el.h"
 #include "parse.h"
+#include "utf8.h"
 
 static const struct {
 	const wchar_t *name;
@@ -142,7 +143,7 @@ libedit_private int
 parse__escape(const wchar_t **ptr)
 {
 	const wchar_t *p;
-	wint_t c;
+	int c;			/* not wint_t: 16 bits on Windows */
 
 	p = *ptr;
 
@@ -217,7 +218,7 @@ parse__escape(const wchar_t **ptr)
 				}
 				c = (c << 3) | (ch - '0');
 			}
-			if ((c & (wint_t)0xffffff00) != (wint_t)0)
+			if ((c & 0xffffff00) != 0)
 				return -1;
 			--p;
 			break;
@@ -254,7 +255,7 @@ parse__string(wchar_t *out, const wchar_t *in)
 		case '^':
 			if ((n = parse__escape(&in)) == -1)
 				return NULL;
-			*out++ = (wchar_t)n;
+			out = put_wchar(out, n); /* UTF-16 on Windows */
 			break;
 
 		case 'M':
