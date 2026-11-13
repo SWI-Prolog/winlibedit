@@ -148,7 +148,15 @@ ct_decode_string(const char *s, ct_buffer_t *conv)
 
 #ifdef __WINDOWS__
 	size_t slen = strlen(s);
-	len = libedit_utf8_strlen(s, slen);
+	const char *e = &s[slen];
+
+	len = 0;			/* UTF-16 units we write */
+	for(const char *i = s; i < e; ) {
+		int chr;
+
+		i = utf8_get_char(i, &chr);
+		len += chr > 0xffff ? 2 : 1;
+	}
 #else
 	len = mbstowcs(NULL, s, (size_t)0);
 	if (len == (size_t)-1)
@@ -160,7 +168,6 @@ ct_decode_string(const char *s, ct_buffer_t *conv)
 			return NULL;
 
 #ifdef __WINDOWS__
-	const char *e = &s[slen];
 	wchar_t *ws = conv->wbuff;
 	while(s<e)
 	{ int chr;
