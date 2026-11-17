@@ -10,10 +10,11 @@ endif()
 file(WRITE "${OUTPUT}" "/* Automatically generated file, do not edit */\n")
 file(APPEND "${OUTPUT}" "static const struct el_bindings_t el_func_help[] = {\n")
 
+# INPUTS is a semicolon-separated list.  Do not use separate_arguments():
+# that splits on spaces and breaks source trees whose path contains a space.
 string(REPLACE "\\" "" INPUTS "${INPUTS}")
-separate_arguments(INPUTS)
 
-foreach(src ${INPUTS})
+foreach(src IN LISTS INPUTS)
   file(STRINGS "${src}" lines)
   string(REPLACE "^" "^!" lines "${lines}")
   string(REPLACE "[" "^a" lines "${lines}")

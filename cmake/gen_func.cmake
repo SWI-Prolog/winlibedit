@@ -13,10 +13,11 @@ file(APPEND "${OUTPUT}" "static const el_func_t el_func[] = {\n")
 
 set(funcs "")
 
+# INPUTS is a semicolon-separated list.  Do not use separate_arguments():
+# that splits on spaces and breaks source trees whose path contains a space.
 string(REPLACE "\\" "" INPUTS "${INPUTS}")
-separate_arguments(INPUTS)
 
-foreach(hdr ${INPUTS})
+foreach(hdr IN LISTS INPUTS)
   file(READ "${hdr}" txt)
   # Strip comments and condense whitespace
   string(REGEX REPLACE "/\\*[^*]*\\*+([^/*][^*]*\\*+)*/" "" txt "${txt}")

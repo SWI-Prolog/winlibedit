@@ -19,8 +19,9 @@ set(SCRIPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/vi.h
-    COMMAND ${CMAKE_COMMAND} -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/vi.h
-            -DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/vi.c
+    COMMAND ${CMAKE_COMMAND}
+            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/vi.h"
+            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/vi.c"
             -P ${SCRIPT_DIR}/gen_header.cmake
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vi.c ${SCRIPT_DIR}/gen_header.cmake
     COMMENT "Generating vi.h"
@@ -28,8 +29,9 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/emacs.h
-    COMMAND ${CMAKE_COMMAND} -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/emacs.h
-            -DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/emacs.c
+    COMMAND ${CMAKE_COMMAND}
+            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/emacs.h"
+            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/emacs.c"
             -P ${SCRIPT_DIR}/gen_header.cmake
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/emacs.c ${SCRIPT_DIR}/gen_header.cmake
     COMMENT "Generating emacs.h"
@@ -37,8 +39,9 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/common.h
-    COMMAND ${CMAKE_COMMAND} -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/common.h
-            -DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/common.c
+    COMMAND ${CMAKE_COMMAND}
+            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/common.h"
+            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/common.c"
             -P ${SCRIPT_DIR}/gen_header.cmake
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.c ${SCRIPT_DIR}/gen_header.cmake
     COMMENT "Generating common.h"
@@ -47,8 +50,8 @@ add_custom_command(
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fcns.h
   COMMAND ${CMAKE_COMMAND}
-          -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/fcns.h
-          -DINPUTS="${CMAKE_CURRENT_BINARY_DIR}/vi.h\;${CMAKE_CURRENT_BINARY_DIR}/emacs.h\;${CMAKE_CURRENT_BINARY_DIR}/common.h"
+          "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/fcns.h"
+          "-DINPUTS=${CMAKE_CURRENT_BINARY_DIR}/vi.h\;${CMAKE_CURRENT_BINARY_DIR}/emacs.h\;${CMAKE_CURRENT_BINARY_DIR}/common.h"
           -P ${SCRIPT_DIR}/gen_fcns.cmake
   DEPENDS
           ${CMAKE_CURRENT_BINARY_DIR}/vi.h
