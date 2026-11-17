@@ -10,10 +10,11 @@ endif()
 
 set(all_names)
 
+# INPUTS is a semicolon-separated list.  Do not use separate_arguments():
+# that splits on spaces and breaks source trees whose path contains a space.
 string(REPLACE "\\" "" INPUTS "${INPUTS}")
-separate_arguments(INPUTS)
 
-foreach(hdr ${INPUTS})
+foreach(hdr IN LISTS INPUTS)
   file(READ "${hdr}" txt)
 
   # Normalize whitespace and strip block comments (headers should be clean already,
