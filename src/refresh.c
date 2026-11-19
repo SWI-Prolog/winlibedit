@@ -591,6 +591,13 @@ re_goto_bottom(EditLine *el)
 /* re_insert():
  *	insert num characters of s into d (in front of the character)
  *	at dat, maximum length of d is dlen
+ *
+ *	d is a row of el_display, so dlen is its allocation (EL_BUFSIZ),
+ *	not the terminal width: combining marks and prompt literals take
+ *	a cell but no column, so a row may hold more cells than t_size.h.
+ *	Cutting it at t_size.h loses its last cells, and
+ *	terminal_move_to_char(), which moves right by writing the cells
+ *	that are on the screen, then writes stale ones.
  */
 static void
 /*ARGSUSED*/
@@ -642,6 +649,7 @@ re_insert(EditLine *el __attribute__((__unused__)),
 
 /* re_delete():
  *	delete num characters d at dat, maximum length of d is dlen
+ *	(EL_BUFSIZ for a row of el_display; see re_insert())
  */
 static void
 /*ARGSUSED*/
@@ -1137,7 +1145,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				"ERROR: cannot insert in early first diff\n");
 				terminal_insertwrite(el, nfd, fx);
 				re_insert(el, old, (int)(ofd - old),
-				    el->el_terminal.t_size.h, nfd, fx);
+				    (int)EL_BUFSIZ, nfd, fx);
 			}
 			/*
 			 * write (nsb-nfd) - fx chars of new starting at
@@ -1196,7 +1204,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				rtlog("  after deletechars el_cursor.h=%d\n",
 				      el->el_cursor.h);
 				re_delete(el, old, (int)(ofd - old),
-				    el->el_terminal.t_size.h, -fx);
+				    (int)EL_BUFSIZ, -fx);
 			}
 			/*
 			 * write (nsb-nfd) chars of new starting at nfd
@@ -1320,7 +1328,7 @@ re_update_line(EditLine *el, wchar_t *old, wchar_t *new, int i)
 				 "ERROR: cannot insert in late first diff\n");
 				terminal_insertwrite(el, nfd, fx);
 				re_insert(el, old, (int)(ofd - old),
-				    el->el_terminal.t_size.h, nfd, fx);
+				    (int)EL_BUFSIZ, nfd, fx);
 			}
 			/*
 			 * write (nsb-nfd) - fx chars of new starting at
